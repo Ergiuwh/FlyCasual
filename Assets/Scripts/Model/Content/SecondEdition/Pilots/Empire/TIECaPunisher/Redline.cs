@@ -76,6 +76,7 @@ namespace Abilities.SecondEdition
             HostShip.TwoTargetLocksOnDifferentTargetsAreAllowed.Add(HostShip);
             HostShip.TwoTargetLocksOnSameTargetsAreAllowed.Add(HostShip);
             HostShip.OnActionIsPerformed += RegisterAbility;
+            HostShip.Ai.OnGetActionPriority += ReduceLockActionPriority;
         }
 
         public override void DeactivateAbility()
@@ -83,6 +84,7 @@ namespace Abilities.SecondEdition
             HostShip.TwoTargetLocksOnDifferentTargetsAreAllowed.Remove(HostShip);
             HostShip.TwoTargetLocksOnSameTargetsAreAllowed.Remove(HostShip);
             HostShip.OnActionIsPerformed -= RegisterAbility;
+            HostShip.Ai.OnGetActionPriority -= ReduceLockActionPriority;
         }
 
         private void RegisterAbility(GenericAction action)
@@ -97,6 +99,14 @@ namespace Abilities.SecondEdition
                 "You may acquire a lock",
                 HostShip
             );
+        }
+
+        private void ReduceLockActionPriority(GenericAction action, ref int priority)
+        {
+            if (action is TargetLockAction)
+            {
+                priority = 1;
+            }
         }
     }
 }
