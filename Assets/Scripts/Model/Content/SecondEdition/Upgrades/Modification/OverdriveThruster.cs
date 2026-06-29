@@ -1,8 +1,6 @@
-﻿using ActionsList;
+using ActionsList;
 using BoardTools;
 using Movement;
-using Ship;
-using System;
 using System.Collections.Generic;
 using Upgrade;
 
@@ -32,49 +30,47 @@ namespace Abilities.SecondEdition
     {
         public override void ActivateAbility()
         {
-            HostShip.OnUpdateChosenBoostTemplate += UpdateBoostTemplate;
-            HostShip.OnUpdateChosenBarrelRollTemplate += UpdateBarrelRollTemplate;
+            HostShip.OnGetAvailableBoostTemplates += UpdateBoostTemplate;
+            HostShip.OnGetAvailableBarrelRollTemplates += UpdateBarrelRollTemplate;
             HostShip.OnUpdateChosenSlamTemplate += UpdateSlamTemplate;
         }
 
         public override void DeactivateAbility()
         {
-            HostShip.OnUpdateChosenBoostTemplate -= UpdateBoostTemplate;
-            HostShip.OnUpdateChosenBarrelRollTemplate -= UpdateBarrelRollTemplate;
+            HostShip.OnGetAvailableBoostTemplates -= UpdateBoostTemplate;
+            HostShip.OnGetAvailableBarrelRollTemplates -= UpdateBarrelRollTemplate;
             HostShip.OnUpdateChosenSlamTemplate -= UpdateSlamTemplate;
         }
 
-        private void UpdateBoostTemplate(ref string name)
+        private void UpdateBoostTemplate(List<BoostMove> availableTemplates, GenericAction action)
         {
-            if (ActionsHolder.CurrentAction.IsRed)
+            if (action.IsRed)
             {
-                IncreaseSpeedOfTemplateByName(ref name);
-            }
-        }
+                List<BoostMove> newTemplates = new();
 
-        private void IncreaseSpeedOfTemplateByName(ref string name)
-        {
-            bool isChanged = false;
-
-            if (name.Contains("1"))
-            {
-                name = name.Replace('1', '2');
-                isChanged = true;
-            }
-            
-            if (isChanged)
-            {
-                Messages.ShowInfo("Overdrive Thursters: Template of 1 speed higher is used");
-            }
-        }
-
-        private void UpdateBarrelRollTemplate(ref ManeuverTemplate maneuverTemplate)
-        {
-            if (ActionsHolder.CurrentAction.IsRed)
-            {
-                if (maneuverTemplate.TryIncreaseSpeed())
+                foreach (BoostMove template in availableTemplates)
                 {
-                    Messages.ShowInfo("Overdrive Thursters: Template of 1 speed higher is used");
+                    BoostMove newMove = new(
+                        BoostMove.GetBoostTemplateFromName(template.Name.Replace('1', '2')),
+                        template.IsRed,
+                        template.IsPurple,
+                        template.IsForced);
+
+                    newTemplates.Add(newMove);
+                }
+
+                availableTemplates.Clear();
+                availableTemplates.AddRange(newTemplates);
+            }
+        }
+
+        private void UpdateBarrelRollTemplate(List<ManeuverTemplate> availableTemplates, GenericAction action)
+        {
+            if (action.IsRed)
+            {
+                foreach (ManeuverTemplate template in availableTemplates)
+                {
+                    template.TryIncreaseSpeed();
                 }
             }
         }
