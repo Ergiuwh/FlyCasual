@@ -7,18 +7,13 @@ using UnityEngine;
 
 namespace AI.Helpers.Navigation
 {
-    public abstract class GenericNavigationResult
-    {
-        
-    }
-
-    public class VirtualShipInfo
+    public class VirtualShipInfo<Result>
     {
         public GenericShip Ship { get; private set; }
         public ShipPositionInfo RealPositionInfo { get; private set; }
         public ShipPositionInfo VirtualPositionInfo { get; private set; }
         public string PlannedManeuverCode { get; set; }
-        public Dictionary<string, GenericNavigationResult> NavigationResults { get; private set; }
+        public Dictionary<string, Result> NavigationResults { get; private set; }
         public int OrderToActivate { get; set; }
 
         private bool SimpleManeuverPredictionIsReady;
@@ -39,7 +34,7 @@ namespace AI.Helpers.Navigation
             SimpleManeuverPredictionIsReady = true;
         }
 
-        public void UpdateNavigationResults(Dictionary<string, GenericNavigationResult> navigationResults)
+        public void UpdateNavigationResults(Dictionary<string, Result> navigationResults)
         {
             NavigationResults = navigationResults;
         }
@@ -75,9 +70,9 @@ namespace AI.Helpers.Navigation
         }
     }
 
-    public class VirtualBoard
+    public class VirtualBoard<Result>
     {
-        public Dictionary<GenericShip, VirtualShipInfo> Ships;
+        public Dictionary<GenericShip, VirtualShipInfo<Result>> Ships;
         public int Round;
 
         public VirtualBoard()
@@ -89,10 +84,10 @@ namespace AI.Helpers.Navigation
         {
             if (Round < Phases.RoundCounter)
             {
-                Ships = new Dictionary<GenericShip, VirtualShipInfo>();
+                Ships = new Dictionary<GenericShip, VirtualShipInfo<Result>>();
                 foreach (GenericShip ship in Roster.AllShips.Values)
                 {
-                    Ships.Add(ship, new VirtualShipInfo(ship));
+                    Ships.Add(ship, new VirtualShipInfo<Result>(ship));
                 }
 
                 Round = Phases.RoundCounter;
@@ -193,15 +188,15 @@ namespace AI.Helpers.Navigation
             return Ships[ship].RequiresManeuverAssignment();
         }
 
-        public void UpdateNavigationResults(GenericShip ship, Dictionary<string, GenericNavigationResult> navigationResults)
+        public void UpdateNavigationResults(GenericShip ship, Dictionary<string, Result> navigationResults)
         {
             Ships[ship].UpdateNavigationResults(navigationResults);
         }
     }
 
-    public class VirtualBoardWrapper
+    public class VirtualBoardWrapper<Result>
     {
-        public VirtualBoard InternalVirtualBoard;
+        public VirtualBoard<Result> InternalVirtualBoard;
         public bool IsInRealPosition { get; private set; }
         public bool IsAllShipsVirtualPositionAccurate { get; set; }
         
@@ -217,12 +212,12 @@ namespace AI.Helpers.Navigation
             IsInRealPosition = true;
         }
 
-        public VirtualBoard GetVirtualBoard()
+        public VirtualBoard<Result> GetVirtualBoard()
         {
             return InternalVirtualBoard;
         }
 
-        public VirtualBoard GetVirtualBoardRequireColliders()
+        public VirtualBoard<Result> GetVirtualBoardRequireColliders()
         {
             if (IsInRealPosition)
             {
@@ -276,9 +271,9 @@ namespace AI.Helpers.Navigation
         public readonly struct VirtualBoardWrapperShipInterface
         {
             public readonly GenericShip Ship { get; }
-            public readonly VirtualBoardWrapper CreatedBy { get; }
+            public readonly VirtualBoardWrapper<Result> CreatedBy { get; }
 
-            public VirtualBoardWrapperShipInterface(GenericShip ship, VirtualBoardWrapper createdBy)
+            public VirtualBoardWrapperShipInterface(GenericShip ship, VirtualBoardWrapper<Result> createdBy)
             {
                 Ship = ship;
                 CreatedBy = createdBy;

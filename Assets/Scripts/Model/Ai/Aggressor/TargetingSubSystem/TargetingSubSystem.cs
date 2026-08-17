@@ -1,11 +1,8 @@
 ﻿using BoardTools;
-using Editions;
 using Remote;
 using Ship;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Tokens;
 using UnityEngine;
 using Upgrade;
 
@@ -29,74 +26,18 @@ namespace AI.Aggressor
 
         private void CalculatePriority()
         {
-            // Local constants
-
-            const float attackDiceChanceUnmodified = 0.5f;
-            const float attackDiceChanceSingleModification = 0.75f;
-            const float attackDiceChanceFullModification = 0.938f;
-
-            const float potentialCritsNoReroll = 0.125f;
-            const float potentialCritsWithReroll = 0.1875f;
-
-            const float defenceDiceChanceUnmodified = 0.375f;
-            const float defenceDiceChanceFocusModification = 0.625f;
-
             ShotInfo shotInfo = new(CurrentShip, TargetShip, Weapon);
 
-            // Attack dice
+            float averageHits = Helpers.AttackCalculations.FastAttackCalculations.AverageHits(shotInfo, CurrentShip, TargetShip, Weapon);
+            float averageCrits = Helpers.AttackCalculations.FastAttackCalculations.AverageCrits(shotInfo, CurrentShip, TargetShip, Weapon);
+            float averageEvades = Helpers.AttackCalculations.FastAttackCalculations.AverageEvades(shotInfo, TargetShip, Weapon);
 
-            float attackDiceThrown = Weapon.WeaponInfo.AttackValue;
-            if (shotInfo.Range <= 1 && Edition.Current.IsWeaponHaveRangeBonus(Weapon)) attackDiceThrown++;
-
-            float attackDiceModifier;
-            float criticalHitsModifier = potentialCritsNoReroll;
-            if (CurrentShip.Tokens.HasToken<FocusToken>() && ActionsHolder.HasTargetLockOn(CurrentShip, TargetShip))
-            {
-                attackDiceModifier = attackDiceChanceFullModification;
-            }
-            else if (CurrentShip.Tokens.HasToken<FocusToken>() || ActionsHolder.HasTargetLockOn(CurrentShip, TargetShip))
-            {
-                attackDiceModifier = attackDiceChanceSingleModification;
-                if (ActionsHolder.HasTargetLockOn(CurrentShip, TargetShip)) criticalHitsModifier = potentialCritsWithReroll;
-            }
-            else
-            {
-                attackDiceModifier = attackDiceChanceUnmodified;
-            }
-
-            float potentialHits = attackDiceThrown * attackDiceModifier;
-
-            // Defence dice
-
-            float defenceDiceThrown = TargetShip.State.Agility;
-            if (shotInfo.Range == 3 && !Edition.Current.IsWeaponHaveRangeBonus(Weapon)) defenceDiceThrown++;
-            if (shotInfo.IsObstructedByObstacle) defenceDiceThrown++;
-
-            float defenceDiceModifier;
-            if (TargetShip.Tokens.HasToken<FocusToken>())
-            {
-                defenceDiceModifier = defenceDiceChanceFocusModification;
-            }
-            else
-            {
-                defenceDiceModifier = defenceDiceChanceUnmodified;
-            }
-
-            float potentialEvades = defenceDiceThrown * defenceDiceModifier;
-            if (TargetShip.Tokens.HasToken<EvadeToken>() && defenceDiceThrown > 0)
-            {
-                potentialEvades += 1;
-            }
-
-            // Results
-
-            float potentialDamage = potentialHits - potentialEvades;
+            float averageDamageIncorrect = averageHits - averageEvades;
 
             float targetHP = TargetShip.State.HullCurrent + TargetShip.State.ShieldsCurrent;
-            float damageImpact = potentialDamage / targetHP;
-            if (targetHP < potentialDamage) damageImpact *= 2;
+            float damageImpact = averageDamageIncorrect / targetHP;
+            if (targetHP < averageDamageIncorrect) damageImpact *= 2;
 
-            float potentialCrits = attackDiceThrown * criticalHitsModifier;
             float shipCost = TargetShip.PilotInfo.Cost;
 
             IShipWeapon currentWeapon;
@@ -127,7 +68,7 @@ namespace AI.Aggressor
             }
             else
             {
-                int priority = (int)(damageImpact * 1000f + potentialCrits * 100f + shipCost);
+                int priority = (int)(damageImpact * 1000f + averageCrits * 100f + shipCost);
                 CurrentShip.Ai.CallGetWeaponPriority(TargetShip, Weapon, ref priority);
                 Priority = priority;
             }

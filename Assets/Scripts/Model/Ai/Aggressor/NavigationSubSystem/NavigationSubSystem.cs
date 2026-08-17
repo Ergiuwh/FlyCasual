@@ -1,4 +1,5 @@
-﻿using BoardTools;
+﻿using AI.Helpers.Navigation;
+using BoardTools;
 using Movement;
 using Players;
 using Ship;
@@ -14,8 +15,8 @@ namespace AI.Aggressor
     {
         private static GenericPlayer CurrentPlayer;
 
-        private static Dictionary<PlayerNo, VirtualBoard> VirtualBoards;
-        private static VirtualBoard VirtualBoard
+        private static Dictionary<PlayerNo, VirtualBoard<NavigationResult>> VirtualBoards;
+        private static VirtualBoard<NavigationResult> VirtualBoard
         {
             get { return VirtualBoards[CurrentPlayer.PlayerNo]; }
             set { VirtualBoards[CurrentPlayer.PlayerNo] = value; }
@@ -469,10 +470,10 @@ namespace AI.Aggressor
 
         private static void ConfigureVirtualBoards()
         {
-            if (Phases.RoundCounter == 1) VirtualBoards = new Dictionary<PlayerNo, VirtualBoard>()
+            if (Phases.RoundCounter == 1) VirtualBoards = new Dictionary<PlayerNo, VirtualBoard<NavigationResult>>()
             {
-                { PlayerNo.Player1, new VirtualBoard() },
-                { PlayerNo.Player2, new VirtualBoard() }
+                { PlayerNo.Player1, new VirtualBoard<NavigationResult>() },
+                { PlayerNo.Player2, new VirtualBoard<NavigationResult>() }
             };
 
             VirtualBoard.Update();
