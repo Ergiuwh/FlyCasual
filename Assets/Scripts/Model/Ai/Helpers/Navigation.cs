@@ -1,9 +1,9 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Linq;
 using Movement;
 using Ship;
-
-#nullable enable
 
 namespace AI.Helpers.Navigation
 {

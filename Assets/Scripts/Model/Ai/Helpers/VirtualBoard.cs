@@ -1,11 +1,13 @@
+#nullable enable
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using AI.Helpers.Types;
 using BoardTools;
 using Movement;
 using Ship;
 using UnityEngine;
-
-#nullable enable
 
 namespace AI.Helpers.Navigation
 {
@@ -309,6 +311,14 @@ namespace AI.Helpers.Navigation
             return true;
         }
 
+        public void SetOrderOfActivation(OrderOfActivation order)
+        {
+            for (int i = 0; i < order.Ships.Count; i++)
+            {
+                InternalVirtualBoard.Ships[order.Ships[i]].OrderToActivate = i;
+            }
+        }
+
         public VirtualBoardWrapperShipInterface GetShipInterface(GenericShip ship)
         {
             return new VirtualBoardWrapperShipInterface(ship, this);
@@ -320,6 +330,18 @@ namespace AI.Helpers.Navigation
             foreach (GenericShip ship in InternalVirtualBoard.Ships.Keys)
             {
                 result.Add(new VirtualBoardWrapperShipInterface(ship, this));
+            }
+            return result;
+        }
+
+        public List<VirtualBoardWrapperShipInterface> GetShipInterfaceOnAllShipsWhere(Func<GenericShip, bool> predicate)
+        {
+            List<VirtualBoardWrapperShipInterface> result = new();
+            foreach (GenericShip ship in InternalVirtualBoard.Ships.Keys)
+            {
+                if (predicate(ship)) {
+                    result.Add(new VirtualBoardWrapperShipInterface(ship, this));
+                }
             }
             return result;
         }

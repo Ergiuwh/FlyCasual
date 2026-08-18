@@ -1,11 +1,11 @@
+#nullable enable
+
 using System;
 using System.Linq;
 using BoardTools;
 using Editions;
 using Ship;
 using Tokens;
-
-#nullable enable
 
 namespace AI.Helpers.AttackCalculations
 {
