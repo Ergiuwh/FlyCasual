@@ -5,6 +5,8 @@ using Movement;
 using Ship;
 using UnityEngine;
 
+#nullable enable
+
 namespace AI.Helpers.Navigation
 {
     public class VirtualShipInfo<Result>
@@ -12,14 +14,16 @@ namespace AI.Helpers.Navigation
         public GenericShip Ship { get; private set; }
         public ShipPositionInfo RealPositionInfo { get; private set; }
         public ShipPositionInfo VirtualPositionInfo { get; private set; }
-        public string PlannedManeuverCode { get; set; }
-        public Dictionary<string, Result> NavigationResults { get; private set; }
+        public string? PlannedManeuverCode { get; set; }
+        public Dictionary<string, Result>? NavigationResults { get; private set; }
         public int OrderToActivate { get; set; }
 
         private bool SimpleManeuverPredictionIsReady;
         private bool AllFinalPositionsAreKnown { get { return NavigationResults != null; } }
 
-        private bool VirtualPositionWithCollisionsIsReady;
+        public bool VirtualPositionWithCollisionsIsReady { get; private set; }
+
+        public bool CollisionsRemoved { get; private set; }
 
         public VirtualShipInfo(GenericShip ship)
         {
@@ -27,7 +31,7 @@ namespace AI.Helpers.Navigation
             RealPositionInfo = new ShipPositionInfo(ship.GetPosition(), ship.GetAngles());
         }
 
-        public void UpdateSimpleManeuverPrediction(ShipPositionInfo virtualPositionInfo, string maneuverCode)
+        public void UpdateSimpleManeuverPrediction(ShipPositionInfo virtualPositionInfo, string? maneuverCode)
         {
             VirtualPositionInfo = virtualPositionInfo;
             PlannedManeuverCode = maneuverCode;
@@ -68,6 +72,69 @@ namespace AI.Helpers.Navigation
         {
             return VirtualPositionWithCollisionsIsReady == false;
         }
+
+        public void SwitchToRealPosition()
+        {
+            if (!DebugManager.DebugMovementShowPlanning)
+            {
+                ShipPositionInfo savedModelPosition = new(Ship.GetShipAllPartsTransform().position, Ship.GetShipAllPartsTransform().eulerAngles);
+                Ship.SetPositionInfo(RealPositionInfo);
+                Ship.GetShipAllPartsTransform().position = savedModelPosition.Position;
+                Ship.GetShipAllPartsTransform().eulerAngles = savedModelPosition.Angles;
+                Ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").position = savedModelPosition.Position;
+                Ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").eulerAngles = savedModelPosition.Angles;
+            }
+            else
+            {
+                Ship.SetPositionInfo(RealPositionInfo);
+            }
+            VirtualPositionWithCollisionsIsReady = false;
+        }
+
+        public void SwitchToVirtualPosition()
+        {
+            if (!DebugManager.DebugMovementShowPlanning)
+            {
+                ShipPositionInfo savedModelPosition = new(Ship.GetShipAllPartsTransform().position, Ship.GetShipAllPartsTransform().eulerAngles);
+                Ship.SetPositionInfo(VirtualPositionInfo);
+                Ship.GetShipAllPartsTransform().position = savedModelPosition.Position;
+                Ship.GetShipAllPartsTransform().eulerAngles = savedModelPosition.Angles;
+                Ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").position = VirtualPositionInfo.Position;
+                Ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").localPosition += new Vector3(0, 0.150289f, 1.156069f);
+                Ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").eulerAngles = VirtualPositionInfo.Angles;
+            }
+            else
+            {
+                Ship.SetPositionInfo(VirtualPositionInfo);
+            }
+            VirtualPositionWithCollisionsIsReady = true; // todo check this
+        }
+
+        public void RemoveCollisions()
+        {
+            if (!CollisionsRemoved)
+            {
+                Vector3 savedModelPosition = Ship.GetShipAllPartsTransform().position;
+
+                Ship.SetPosition(Ship.GetPosition() - new Vector3(0, -100, 0));
+                Ship.GetShipAllPartsTransform().position = savedModelPosition;
+
+                CollisionsRemoved = true;
+            }
+        }
+
+        public void ReturnCollisions()
+        {
+            if (CollisionsRemoved)
+            {
+                Vector3 savedModelPosition = Ship.GetShipAllPartsTransform().position;
+
+                Ship.SetPosition(Ship.GetPosition() - new Vector3(0, +100, 0));
+                Ship.GetShipAllPartsTransform().position = savedModelPosition;
+
+                CollisionsRemoved = false;
+            }
+        }
     }
 
     public class VirtualBoard<Result>
@@ -78,6 +145,7 @@ namespace AI.Helpers.Navigation
         public VirtualBoard()
         {
             Update();
+            Ships ??= new();
         }
 
         public void Update()
@@ -94,7 +162,7 @@ namespace AI.Helpers.Navigation
             }
         }
 
-        public void SetVirtualPositionInfo(GenericShip ship, ShipPositionInfo virtualPositionInfo, string maneuverCode)
+        public void SetVirtualPositionInfo(GenericShip ship, ShipPositionInfo virtualPositionInfo, string? maneuverCode)
         {
             Ships[ship].UpdateSimpleManeuverPrediction(virtualPositionInfo, maneuverCode);
         }
@@ -106,37 +174,12 @@ namespace AI.Helpers.Navigation
 
         public void SwitchToVirtualPosition(GenericShip ship)
         {
-            if (!DebugManager.DebugMovementShowPlanning)
-            {
-                ShipPositionInfo savedModelPosition = new ShipPositionInfo(ship.GetShipAllPartsTransform().position, ship.GetShipAllPartsTransform().eulerAngles);
-                ship.SetPositionInfo(Ships[ship].VirtualPositionInfo);
-                ship.GetShipAllPartsTransform().position = savedModelPosition.Position;
-                ship.GetShipAllPartsTransform().eulerAngles = savedModelPosition.Angles;
-                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").position = Ships[ship].VirtualPositionInfo.Position;
-                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").localPosition += new Vector3(0, 0.150289f, 1.156069f);
-                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").eulerAngles = Ships[ship].VirtualPositionInfo.Angles;
-            }
-            else
-            {
-                ship.SetPositionInfo(Ships[ship].VirtualPositionInfo);
-            }
+            Ships[ship].SwitchToVirtualPosition();
         }
 
         public void SwitchToRealPosition(GenericShip ship)
         {
-            if (!DebugManager.DebugMovementShowPlanning)
-            {
-                ShipPositionInfo savedModelPosition = new ShipPositionInfo(ship.GetShipAllPartsTransform().position, ship.GetShipAllPartsTransform().eulerAngles);
-                ship.SetPositionInfo(Ships[ship].RealPositionInfo);
-                ship.GetShipAllPartsTransform().position = savedModelPosition.Position;
-                ship.GetShipAllPartsTransform().eulerAngles = savedModelPosition.Angles;
-                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").position = savedModelPosition.Position;
-                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").eulerAngles = savedModelPosition.Angles;
-            }
-            else
-            {
-                ship.SetPositionInfo(Ships[ship].RealPositionInfo);
-            }
+            Ships[ship].SwitchToRealPosition();
         }
 
         public void RestoreBoard()
@@ -153,24 +196,27 @@ namespace AI.Helpers.Navigation
             {
                 if (ship == exceptShip) continue;
 
-                Vector3 savedModelPosition = ship.GetShipAllPartsTransform().position;
-                
-                ship.SetPosition(ship.GetPosition() - new Vector3(0, -100, 0));
-                ship.GetShipAllPartsTransform().position = savedModelPosition;
+                Ships[ship].RemoveCollisions();
             }
         }
 
-        public void ReturnCollisionsExcept(GenericShip exceptShip)
+        public void ReturnAllCollisions()
         {
             foreach (GenericShip ship in Ships.Keys)
             {
-                if (ship == exceptShip) continue;
 
-                Vector3 savedModelPosition = ship.GetShipAllPartsTransform().position;
-
-                ship.SetPosition(ship.GetPosition() - new Vector3(0, +100, 0));
-                ship.GetShipAllPartsTransform().position = savedModelPosition;
+                Ships[ship].ReturnCollisions();
             }
+        }
+
+        public void RemoveCollisions(GenericShip ship)
+        {
+            Ships[ship].RemoveCollisions();
+        }
+
+        public void ReturnCollisions(GenericShip ship)
+        {
+            Ships[ship].ReturnCollisions();
         }
 
         public bool RequiresCollisionPrediction(GenericShip ship)
@@ -198,7 +244,6 @@ namespace AI.Helpers.Navigation
     {
         public VirtualBoard<Result> InternalVirtualBoard;
         public bool IsInRealPosition { get; private set; }
-        public bool IsAllShipsVirtualPositionAccurate { get; set; }
         
         public VirtualBoardWrapper()
         {
@@ -224,7 +269,7 @@ namespace AI.Helpers.Navigation
                 Console.Write("\nDebug Warning: Read requiring colliders on virtual board in real position.", false, "red");
                 Messages.ShowError("Debug Warning: Read requiring colliders on virtual board in real position.");
             }
-            if (!IsAllShipsVirtualPositionAccurate)
+            if (!IsAllShipsVirtualPositionAccurate())
             {
                 Console.Write("\nDebug Warning: Read requiring colliders on virtual board with colliders possibly incorrect.", false, "red");
                 Messages.ShowError("Debug Warning: Read requiring colliders on virtual board with colliders possibly incorrect.");
@@ -245,12 +290,23 @@ namespace AI.Helpers.Navigation
                 InternalVirtualBoard.SwitchToVirtualPosition(ship);
             }
             IsInRealPosition = false;
-            IsAllShipsVirtualPositionAccurate = true;
         }
 
         public ShotInfo GenerateShotInfo(GenericShip attacker, GenericShip defender, IShipWeapon weapon)
         {
             return new ShotInfo(attacker, defender, weapon);
+        }
+
+        public bool IsAllShipsVirtualPositionAccurate()
+        {
+            foreach (VirtualShipInfo<Result> shipInfo in InternalVirtualBoard.Ships.Values)
+            {
+                if (!shipInfo.VirtualPositionWithCollisionsIsReady)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public VirtualBoardWrapperShipInterface GetShipInterface(GenericShip ship)
@@ -282,23 +338,20 @@ namespace AI.Helpers.Navigation
             public readonly VirtualBoardWrapperShipInterface ResetVirtualToRealPosition()
             {
                 CreatedBy.GetVirtualBoard().UpdatePositionInfo(Ship);
-                CreatedBy.IsAllShipsVirtualPositionAccurate = false;
                 return this;
             }
 
-            public readonly IEnumerator AssignManeuver(string maneuverCode)
+            public readonly IEnumerator AssignAndApplyManeuver(string maneuverCode)
             {
                 GenericMovement movement = ShipMovementScript.MovementFromString(maneuverCode);
                 MovementPrediction prediction = new(Ship, movement);
                 yield return prediction.CalculateMovementPredicition();
                 CreatedBy.GetVirtualBoardRequireColliders().SetVirtualPositionInfo(Ship, prediction.FinalPositionInfo, maneuverCode);
-                CreatedBy.IsAllShipsVirtualPositionAccurate = false;
             }
 
             public readonly VirtualBoardWrapperShipInterface SetVirtualPositionInfo(ShipPositionInfo virtualPositionInfo, string maneuverCode)
             {
                 CreatedBy.GetVirtualBoard().SetVirtualPositionInfo(Ship, virtualPositionInfo, maneuverCode);
-                CreatedBy.IsAllShipsVirtualPositionAccurate = false;
                 return this;
             }
 
@@ -310,7 +363,6 @@ namespace AI.Helpers.Navigation
             public readonly VirtualBoardWrapperShipInterface SetVirtualPositionInfo(ShipPositionInfo virtualPositionInfo)
             {
                 CreatedBy.GetVirtualBoard().SetVirtualPositionInfo(Ship, virtualPositionInfo, null);
-                CreatedBy.IsAllShipsVirtualPositionAccurate = false;
                 return this;
             }
         }

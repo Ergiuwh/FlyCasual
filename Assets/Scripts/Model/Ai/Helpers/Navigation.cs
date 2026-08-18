@@ -3,9 +3,11 @@ using System.Linq;
 using Movement;
 using Ship;
 
+#nullable enable
+
 namespace AI.Helpers.Navigation
 {
-    public static class Functions
+    public static class NavFunctions
     {
         public static List<string> GetShortestTurnManeuvers(GenericShip ship)
         {

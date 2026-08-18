@@ -5,6 +5,8 @@ using Editions;
 using Ship;
 using Tokens;
 
+#nullable enable
+
 namespace AI.Helpers.AttackCalculations
 {
     public class DiscreteProbabilityDistribution

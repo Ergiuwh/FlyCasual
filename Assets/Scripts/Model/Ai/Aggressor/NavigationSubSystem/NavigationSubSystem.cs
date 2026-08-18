@@ -396,7 +396,7 @@ namespace AI.Aggressor
             bool HasAnyManeuverWithoutOffBoardFinish = false;
             bool HasAnyManeuverWithoutAsteroidCollision = false;
 
-            foreach (string turnManeuver in GetShortestTurnManeuvers(ship))
+            foreach (string turnManeuver in NavFunctions.GetShortestTurnManeuvers(ship))
             {
                 GenericMovement movement = ShipMovementScript.MovementFromString(turnManeuver);
 
@@ -414,34 +414,7 @@ namespace AI.Aggressor
             CurrentNavigationResult.isOffTheBoardNextTurn = !HasAnyManeuverWithoutOffBoardFinish;
             CurrentNavigationResult.isHitAsteroidNextTurn = !HasAnyManeuverWithoutAsteroidCollision;
 
-            VirtualBoard.ReturnCollisionsExcept(ship);
-        }
-
-        private static List<string> GetShortestTurnManeuvers(GenericShip ship)
-        {
-            List<string> bestTurnManeuvers = new List<string>();
-
-            ManeuverHolder bestLeftTurnManeuver = ship.GetManeuverHolders()
-                .Where(n =>
-                    n.Bearing == ManeuverBearing.Turn
-                    && n.Direction == ManeuverDirection.Left
-                )
-                .OrderBy(n => n.SpeedIntUnsigned)
-                .FirstOrDefault();
-            if(bestLeftTurnManeuver.Bearing == ManeuverBearing.Turn)
-                bestTurnManeuvers.Add(bestLeftTurnManeuver.ToString());
-
-            ManeuverHolder bestRightTurnManeuver = ship.GetManeuverHolders()
-                .Where(n =>
-                    n.Bearing == ManeuverBearing.Turn
-                    && n.Direction == ManeuverDirection.Right
-                )
-                .OrderBy(n => n.SpeedIntUnsigned)
-                .FirstOrDefault();
-            if (bestRightTurnManeuver.Bearing == ManeuverBearing.Turn)
-                bestTurnManeuvers.Add(bestRightTurnManeuver.ToString());
-
-            return bestTurnManeuvers;
+            VirtualBoard.ReturnAllCollisions();
         }
 
         public static GenericShip GetNextShipWithoutAssignedManeuver()

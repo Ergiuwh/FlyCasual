@@ -1,6 +1,8 @@
 using BoardTools;
 using Ship;
 
+#nullable enable
+
 namespace AI.Helpers.AttackCalculations
 {
     /// <summary>
