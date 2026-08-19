@@ -1,12 +1,13 @@
 ﻿using Movement;
 using Ship;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace AI.Aggressor
 {
-    public class NavigationResult
+    public class NavigationResult : ICloneable
     {
         public bool isOffTheBoard;
         public bool isLandedOnObstacle;
@@ -116,6 +117,12 @@ namespace AI.Aggressor
             if (minesHit > 0) result += "minesHit:" + obstaclesHit + " ";
 
             return result;
+        }
+
+        public object Clone()
+        {
+            /// No implementation currently intended.
+            throw new NotImplementedException();
         }
     }
 }

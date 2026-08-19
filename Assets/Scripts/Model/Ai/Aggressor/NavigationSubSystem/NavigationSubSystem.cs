@@ -435,7 +435,7 @@ namespace AI.Aggressor
 
         public static void AssignPlannedManeuver(Action callBack)
         {
-            ShipMovementScript.SendAssignManeuverCommand(VirtualBoard.Ships[Selection.ThisShip].PlannedManeuverCode);
+            ShipMovementScript.SendAssignManeuverCommand(VirtualBoard.Ships[Selection.ThisShip].PlannedManeuver.ToString());
             GameManagerScript.Wait(0.2f, delegate { Selection.DeselectThisShip(); callBack(); });
         }
 
