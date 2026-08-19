@@ -433,10 +433,10 @@ namespace AI.Aggressor
                 .FirstOrDefault();
         }
 
-        public static void AssignPlannedManeuver(Action callBack)
+        public static void AssignPlannedManeuver(Action callBack, float delay)
         {
             ShipMovementScript.SendAssignManeuverCommand(VirtualBoard.Ships[Selection.ThisShip].PlannedManeuver.ToString());
-            GameManagerScript.Wait(0.2f, delegate { Selection.DeselectThisShip(); callBack(); });
+            GameManagerScript.Wait(delay, delegate { Selection.DeselectThisShip(); callBack(); });
         }
 
         // Low Priority
