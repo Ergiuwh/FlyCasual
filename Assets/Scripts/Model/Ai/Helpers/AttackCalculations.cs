@@ -9,13 +9,13 @@ using Tokens;
 
 namespace AI.Helpers.AttackCalculations
 {
-    public class DiscreteProbabilityDistribution
+    public struct DiscreteProbabilityDistribution
     {
-        public float[] values;
+        public float[] Values;
 
         public DiscreteProbabilityDistribution(float[] values)
         {
-            this.values = values;
+            Values = values;
         }
 
         /// <summary>
@@ -106,32 +106,32 @@ namespace AI.Helpers.AttackCalculations
 
         private void ModificationSetFailToSuccess()
         {
-            values[^1] += values[^2];
-            for (int i = values.Length - 2; i > 0; i--)
+            Values[^1] += Values[^2];
+            for (int i = Values.Length - 2; i > 0; i--)
             {
-                values[i] = values[i-1];
+                Values[i] = Values[i-1];
             }
-            values[0] = 0;
+            Values[0] = 0;
         }
 
         public float Average()
         {
             float r = 0;
-            for (int i = 1; i < values.Count(); i++)
+            for (int i = 1; i < Values.Count(); i++)
             {
-                r += i * values[i];
+                r += i * Values[i];
             }
             return r;
         }
 
         public float ChanceEqualOrGreaterThan(int number)
         {
-            return SumRange(number,values.Length);
+            return SumRange(number,Values.Length);
         }
 
         public float ChanceLessThan(int number)
         {
-            return SumRange(0,Math.Min(number,values.Length));
+            return SumRange(0,Math.Min(number,Values.Length));
         }
 
         private float SumRange(int start_inclusive, int end_exclusive)
@@ -139,7 +139,7 @@ namespace AI.Helpers.AttackCalculations
             float s = 0;
             for (int i = start_inclusive; i < end_exclusive; i++)
             {
-                s += values[i];
+                s += Values[i];
             }
             return s;
         }
@@ -147,22 +147,44 @@ namespace AI.Helpers.AttackCalculations
         private static float ChanceASubBEquals(int number, DiscreteProbabilityDistribution attack, DiscreteProbabilityDistribution defence)
         {
             float r = 0f;
-            for (int i = number, j = 0; i < attack.values.Count() && j < defence.values.Count(); i++, j++)
+            for (int i = number, j = 0; i < attack.Values.Count() && j < defence.Values.Count(); i++, j++)
             {
-                r += attack.values[i] * defence.values[j];
+                r += attack.Values[i] * defence.Values[j];
+            }
+            return r;
+        }
+
+        private static float ChanceAPlusBEquals(int number, DiscreteProbabilityDistribution distA, DiscreteProbabilityDistribution distB)
+        {
+            float r = 0f;
+            for (int i = 0; i <= number; i++)
+            {
+                int j = number - i;
+                r += distA.Values[i] * distB.Values[j];
             }
             return r;
         }
 
         public static DiscreteProbabilityDistribution SubtractDefenceFromAttack(DiscreteProbabilityDistribution attack, DiscreteProbabilityDistribution defence)
         {
-            int length = attack.values.Length;
+            int length = attack.Values.Length;
             float[] values = new float[length];
-            for (int i = 1; i < attack.values.Length; i++)
+            for (int i = 1; i < length; i++)
             {
                 values[i] = ChanceASubBEquals(i, attack, defence);
             }
             values[0] = 1 - values.Sum();
+            return new(values);
+        }
+
+        public static DiscreteProbabilityDistribution Add(DiscreteProbabilityDistribution distA, DiscreteProbabilityDistribution distB)
+        {
+            int length = distA.Values.Length + distB.Values.Length;
+            float[] values = new float[length];
+            for (int i = 0; i < length; i++)
+            {
+                values[i] = ChanceAPlusBEquals(i, distA, distB);
+            }
             return new(values);
         }
 
