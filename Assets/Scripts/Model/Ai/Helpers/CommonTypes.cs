@@ -16,7 +16,7 @@ namespace AI.Helpers.Types
         }
     }
 
-    public class Maneuver
+    public struct Maneuver
     {
         private ManeuverHolder Value;
         

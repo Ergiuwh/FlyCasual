@@ -306,9 +306,9 @@ namespace AI.Helpers.Navigation
         }
     }
 
-    public class VirtualBoardWrapper<R> where R : ICloneable
+    public class VirtualBoardWrapper<R> : VirtualBoardManager.IVirtualBoard where R : ICloneable
     {
-        public VirtualBoard<R> InternalVirtualBoard;
+        private readonly VirtualBoard<R> InternalVirtualBoard;
         
         public VirtualBoardPosition Position { get; private set; }
 
@@ -322,13 +322,87 @@ namespace AI.Helpers.Navigation
         public VirtualBoardWrapper()
         {
             InternalVirtualBoard = new();
-            Position = VirtualBoardPosition.Real;
+            Position = VirtualBoardPosition.Inactive;
         }
 
         public void CleanupForDrop()
         {
-            InternalVirtualBoard.RestoreBoard();
-            Position = VirtualBoardPosition.Real;
+            Deactivate();
+        }
+
+        public void Activate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard == null)
+            {
+                VirtualBoardManager.ActivateVirtualBoard(this);
+            }
+            else if (VirtualBoardManager.ActiveVirtualBoard == this)
+            {
+                // pass
+            }
+            else
+            {
+                throw new Exception("Attempt to activate virtual board while another is active.");
+            }
+        }
+
+        /// <summary>
+        /// You should not call this outside of VirtualBoard.cs
+        /// </summary>
+        public void ActivateInternal()
+        {
+            Position = VirtualBoardPosition.Virtual;
+            SwitchAllToVirtualPositions();
+        }
+
+        /// <summary>
+        /// You should not call this outside of VirtualBoard.cs
+        /// </summary>
+        public void RecoverActiveInternal()
+        {
+            ActivateInternal();
+        }
+
+        public bool TryActivate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard == null)
+            {
+                VirtualBoardManager.ActivateVirtualBoard(this);
+                return true;
+            }
+            else if (VirtualBoardManager.ActiveVirtualBoard == this)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public void ForceActivate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard != null && VirtualBoardManager.ActiveVirtualBoard != this)
+            {
+                VirtualBoardManager.DeactivateCurrentBoard();
+            }
+            VirtualBoardManager.ActivateVirtualBoard(this);
+        }
+
+        public void Deactivate()
+        {
+            if (Position != VirtualBoardPosition.Inactive)
+            {
+                VirtualBoardManager.DeactivateCurrentBoard();
+            }
+        }
+
+        /// <summary>
+        /// You should not call this outside of VirtualBoard.cs
+        /// </summary>
+        public void DeactivateInternal()
+        {
+            Position = VirtualBoardPosition.Inactive;
         }
 
         public VirtualBoard<R> GetVirtualBoard()
@@ -336,38 +410,66 @@ namespace AI.Helpers.Navigation
             return InternalVirtualBoard;
         }
 
-        public VirtualBoard<R> GetVirtualBoardRequireColliders()
+        public VirtualBoard<R> GetVirtualBoardRequireVirtualColliders()
+        {
+            AssertCollidersAreAccurate();
+            return InternalVirtualBoard;
+        }
+
+        public void AssertPositionsAreAccurate()
         {
             if (Position != VirtualBoardPosition.Virtual)
             {
-                Console.Write("\nDebug Warning: Read requiring colliders on virtual board in real position.", false, "red");
-                Messages.ShowError("Debug Warning: Read requiring colliders on virtual board in real position.");
+                throw new Exception("Read requiring virtual colliders on virtual board in real position.");
             }
             if (!IsAllShipsVirtualPositionAccurate())
             {
-                Console.Write("\nDebug Warning: Read requiring colliders on virtual board with colliders possibly incorrect.", false, "red");
-                Messages.ShowError("Debug Warning: Read requiring colliders on virtual board with colliders possibly incorrect.");
+                throw new Exception("Read requiring colliders on virtual board with colliders possibly incorrect.");
             }
-            return InternalVirtualBoard;
+        }
+
+        public void AssertCollidersAreAccurate()
+        {
+            AssertPositionsAreAccurate();
         }
 
         public void SwitchAllToRealPosition()
         {
-            InternalVirtualBoard.RestoreBoard();
-            Position = VirtualBoardPosition.Real;
+            switch (Position)
+            {
+                case VirtualBoardPosition.Virtual:
+                    InternalVirtualBoard.RestoreBoard();
+                    Position = VirtualBoardPosition.Real;
+                    break;
+                case VirtualBoardPosition.Real:
+                    break;
+                case VirtualBoardPosition.Inactive:
+                    throw new Exception("Attempt to switch positions of inactive virtual board.");
+                    
+            }
         }
 
         public void SwitchAllToVirtualPositions()
         {
-            foreach (GenericShip ship in InternalVirtualBoard.Ships.Keys)
+            switch (Position)
             {
-                InternalVirtualBoard.SwitchToVirtualPosition(ship);
+                case VirtualBoardPosition.Virtual:
+                    // fall.
+                case VirtualBoardPosition.Real:
+                    foreach (GenericShip ship in InternalVirtualBoard.Ships.Keys)
+                    {
+                        InternalVirtualBoard.SwitchToVirtualPosition(ship);
+                    }
+                    Position = VirtualBoardPosition.Virtual;
+                    break;
+                case VirtualBoardPosition.Inactive:
+                    throw new Exception("Attempt to switch positions of inactive virtual board.");
             }
-            Position = VirtualBoardPosition.Virtual;
         }
 
         public ShotInfo GenerateShotInfo(GenericShip attacker, GenericShip defender, IShipWeapon weapon)
         {
+            AssertPositionsAreAccurate();
             return new ShotInfo(attacker, defender, weapon);
         }
 
@@ -391,6 +493,10 @@ namespace AI.Helpers.Navigation
             }
         }
 
+        /// <summary>
+        /// Clone copyFrom, with the new objects's Position as Inactive.
+        /// </summary>
+        /// <param name="copyFrom"></param>
         public VirtualBoardWrapper(VirtualBoardWrapper<R> copyFrom)
         {
             InternalVirtualBoard = new(copyFrom.InternalVirtualBoard);
@@ -446,7 +552,15 @@ namespace AI.Helpers.Navigation
                 GenericMovement movement = ShipMovementScript.MovementFromString(maneuverCode);
                 MovementPrediction prediction = new(Ship, movement);
                 yield return prediction.CalculateMovementPredicition();
-                CreatedBy.GetVirtualBoardRequireColliders().SetVirtualPositionInfo(Ship, prediction.FinalPositionInfo, maneuverCode);
+                CreatedBy.GetVirtualBoardRequireVirtualColliders().SetVirtualPositionInfo(Ship, prediction.FinalPositionInfo, maneuverCode);
+            }
+
+            public readonly IEnumerator AssignAndApplyManeuver(Maneuver maneuver)
+            {
+                GenericMovement movement = ShipMovementScript.MovementFromString(maneuver.ToString());
+                MovementPrediction prediction = new(Ship, movement);
+                yield return prediction.CalculateMovementPredicition();
+                CreatedBy.GetVirtualBoardRequireVirtualColliders().SetVirtualPositionInfo(Ship, prediction.FinalPositionInfo, maneuver);
             }
 
             public readonly VirtualBoardWrapperShipInterface SetVirtualPositionInfo(ShipPositionInfo virtualPositionInfo, string maneuverCode)
@@ -465,6 +579,293 @@ namespace AI.Helpers.Navigation
                 CreatedBy.GetVirtualBoard().SetVirtualPositionInfoWithoutManeuver(Ship, virtualPositionInfo);
                 return this;
             }
+        }
+    }
+}
+
+namespace AI.Helpers.Navigation
+{
+    public static class VirtualBoardManager
+    {
+        public static IVirtualBoard? ActiveVirtualBoard { get; private set; }
+        public static IVirtualBoard? LastActiveVirtualBoard { get; private set; }
+        private static NewVirtualBoard<EmptyStruct> RealBoard;
+
+        static VirtualBoardManager() {
+            RealBoard = new();
+            ActiveVirtualBoard = RealBoard;
+        }
+
+        public static void DeactivateCurrentBoard()
+        {
+            if (ActiveVirtualBoard == RealBoard)
+            {
+                UpdateRealBoard();
+            }
+            ActiveVirtualBoard?.DeactivateInternal();
+            LastActiveVirtualBoard = ActiveVirtualBoard;
+            ActiveVirtualBoard = null;
+        }
+
+        public static void ActivateVirtualBoard(IVirtualBoard virtualBoard)
+        {
+            if (ActiveVirtualBoard == null) {
+                if (LastActiveVirtualBoard == virtualBoard)
+                {
+                    ActiveVirtualBoard = virtualBoard;
+                    virtualBoard.RecoverActiveInternal();
+                }
+                else
+                {
+                    ActiveVirtualBoard = virtualBoard;
+                    virtualBoard.ActivateInternal();
+                }
+            }
+            else
+            {
+                throw new Exception("Attempt to activate a virtual board while another is active.");
+            }
+        }
+        
+        public static void RestoreRealBoard()
+        {
+            ActivateVirtualBoard(RealBoard);
+            RealBoard.ApplyPositions();
+        }
+
+        private static void UpdateRealBoard()
+        {
+            
+        }
+
+        private struct EmptyStruct : ICloneable
+        {
+            public readonly object Clone()
+            {
+                return new EmptyStruct();
+            }
+        }
+
+        public interface IVirtualBoard
+        {
+            void ActivateInternal();
+            void DeactivateInternal();
+            /// <summary>
+            /// No other board has activated since we last deactivated.
+            /// </summary>
+            void RecoverActiveInternal()
+            {
+                ActivateInternal();
+            }
+        }
+    }
+
+    public class NewVirtualBoard<T> : VirtualBoardManager.IVirtualBoard where T: ICloneable
+    {
+        public Dictionary<GenericShip, ShipInfo> Ships;
+        public VirtualBoardState State { get; private set; }
+
+        public enum VirtualBoardState
+        {
+            Virtual,
+            Other,
+            Inactive,
+        }
+
+        public class ShipInfo
+        {
+            public ShipPositionInfo VirtualPosition;
+            public T OtherData;
+            public bool CollisionsRemoved { get; private set; }
+
+            public ShipInfo(ShipPositionInfo shipPositionInfo, T otherData)
+            {
+                VirtualPosition = shipPositionInfo;
+                OtherData = otherData;
+                CollisionsRemoved = true;
+            }
+
+            public void RemoveCollisions(GenericShip thisShip)
+            {
+                if (!CollisionsRemoved)
+                {
+                    Vector3 savedModelPosition = thisShip.GetShipAllPartsTransform().position;
+
+                    thisShip.SetPosition(thisShip.GetPosition() - new Vector3(0, -100, 0));
+                    thisShip.GetShipAllPartsTransform().position = savedModelPosition;
+
+                    CollisionsRemoved = true;
+                }
+            }
+
+            public void ReturnCollisions(GenericShip thisShip)
+            {
+                if (CollisionsRemoved)
+                {
+                    Vector3 savedModelPosition = thisShip.GetShipAllPartsTransform().position;
+
+                    thisShip.SetPosition(thisShip.GetPosition() - new Vector3(0, +100, 0));
+                    thisShip.GetShipAllPartsTransform().position = savedModelPosition;
+
+                    CollisionsRemoved = false;
+                }
+            }
+
+            public void ApplyPosition(GenericShip thisShip)
+            {
+                thisShip.SetPositionInfo(VirtualPosition);
+            }
+        }
+
+        public NewVirtualBoard()
+        {
+            Ships = new();
+            State = VirtualBoardState.Inactive;
+        }
+
+        public void ActivateInternal()
+        {
+            State = VirtualBoardState.Other;
+        }
+
+        public void RecoverActiveInternal()
+        {
+            ActivateInternal();
+        }
+
+        public void DeactivateInternal()
+        {
+            State = VirtualBoardState.Inactive;
+        }
+
+        public NewVirtualBoard<T> Activate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard != this)
+            {
+                VirtualBoardManager.ActivateVirtualBoard(this);
+            }
+            return this;
+        }
+
+        public NewVirtualBoard<T>? TryActivate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard == null)
+            {
+                VirtualBoardManager.ActivateVirtualBoard(this);
+            }
+            return VirtualBoardManager.ActiveVirtualBoard == this ? this : null;
+        }
+
+        public NewVirtualBoard<T> Deactivate()
+        {
+            if (VirtualBoardManager.ActiveVirtualBoard == this)
+            {
+                VirtualBoardManager.DeactivateCurrentBoard();
+            }
+            return this;
+        }
+
+        public NewVirtualBoard<T> ApplyPositions()
+        {
+            if (State == VirtualBoardState.Other || State == VirtualBoardState.Virtual)
+            {
+                foreach (GenericShip ship in Ships.Keys)
+                {
+                    ship.SetPositionInfo(Ships[ship].VirtualPosition);
+                }
+                State = VirtualBoardState.Virtual;
+                return this;
+            }
+            else
+            {
+                throw new Exception("Attempt to apply positions of an inactive virtual board.");
+            }
+        }
+
+        public struct ShipInterface
+        {
+            public readonly NewVirtualBoard<T> CreatedBy;
+            public readonly GenericShip Ship;
+
+            public ShipInterface(GenericShip ship, NewVirtualBoard<T> createdBy)
+            {
+                CreatedBy = createdBy;
+                Ship = ship;
+            }
+
+            public ShipInterface ApplyPosition()
+            {
+                if (CreatedBy.State == VirtualBoardState.Inactive)
+                {
+                    throw new Exception("Attempt to apply positions of an inactive virtual board.");
+                }
+                CreatedBy.Ships[Ship].ApplyPosition(Ship);
+                return this;
+            }
+
+            public ShipInterface RemoveCollisions()
+            {
+                CreatedBy.Ships[Ship].RemoveCollisions(Ship);
+                return this;
+            }
+
+            public ShipInterface ReturnCollisions()
+            {
+                CreatedBy.Ships[Ship].ReturnCollisions(Ship);
+                return this;
+            }
+
+            public T GetData()
+            {
+                return CreatedBy.Ships[Ship].OtherData;
+            }
+
+            public ShipInterface SetPosition(ShipPositionInfo info)
+            {
+                CreatedBy.Ships[Ship].VirtualPosition = info;
+                return this;
+            }
+        }
+
+        public ShipInterface GetShipInterface(GenericShip ship)
+        {
+            return new ShipInterface(ship, this);
+        }
+
+        public List<ShipInterface> GetShipInterfaceOnAllShips()
+        {
+            List<ShipInterface> result = new();
+            foreach (GenericShip ship in Ships.Keys)
+            {
+                result.Add(new ShipInterface(ship, this));
+            }
+            return result;
+        }
+
+        public List<ShipInterface> GetShipInterfaceOnAllShipsWhere(Func<GenericShip, bool> predicate)
+        {
+            List<ShipInterface> result = new();
+            foreach (GenericShip ship in Ships.Keys)
+            {
+                if (predicate(ship)) {
+                    result.Add(new ShipInterface(ship, this));
+                }
+            }
+            return result;
+        }
+
+        public void AssertIsInVirtualPosition()
+        {
+            if (State != VirtualBoardState.Virtual)
+            {
+                throw new Exception();
+            }
+        }
+
+        public ShotInfo GenerateShotInfo(GenericShip attacker, GenericShip defender, IShipWeapon weapon)
+        {
+            AssertIsInVirtualPosition();
+            return new ShotInfo(attacker, defender, weapon);
         }
     }
 }
