@@ -1,7 +1,10 @@
 #nullable enable
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using AI.Helpers.Types;
 using Movement;
 using Ship;
 
@@ -34,6 +37,24 @@ namespace AI.Helpers.Navigation
                 bestTurnManeuvers.Add(bestRightTurnManeuver.ToString());
 
             return bestTurnManeuvers;
+        }
+
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver) where T : ICloneable {
+            yield return ApplyManeuverOnVirtualBoard<T>(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver.ToString()));
+        }
+
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, string maneuver) where T : ICloneable {
+            yield return ApplyManeuverOnVirtualBoard<T>(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver));
+        }
+
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, GenericMovement movement) where T : ICloneable {
+            virtualBoard.AssertIsInVirtualPosition();
+
+            MovementPrediction prediction = new(ship, movement);
+
+            yield return prediction.CalculateMovementPredicition();
+
+            virtualBoard.GetShipInterface(ship).SetPosition(prediction.FinalPositionInfo);
         }
     }
 }
