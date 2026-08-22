@@ -71,7 +71,7 @@ namespace Players
         {
             if (!DebugManager.DebugStraightToCombat)
             {
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive, WaitAfterAssigningDial);
+                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive);
             }
             else
             {

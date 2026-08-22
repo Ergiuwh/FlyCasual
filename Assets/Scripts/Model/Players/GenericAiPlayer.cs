@@ -15,7 +15,6 @@ namespace Players
 
     public partial class GenericAiPlayer : GenericPlayer
     {
-        public static float WaitAfterAssigningDial = 0.2f;
 
         public GenericAiPlayer() : base()
         {
