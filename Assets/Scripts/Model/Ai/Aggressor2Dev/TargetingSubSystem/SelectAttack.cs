@@ -38,12 +38,12 @@ namespace AI.Aggressor2Dev.Targeting
         /// <param name="ship"></param>
         /// <param name="virtualBoard"></param>
         /// <returns></returns>
-        public static AttackResult? SelectBestAttack(GenericShip ship, VirtualBoardWrapper<VirtualBoardData> virtualBoard)
+        public static AttackResult? SelectBestAttack(GenericShip ship, NewVirtualBoard<VirtualBoardData> virtualBoard)
         {
-            List<VirtualBoardWrapper<VirtualBoardData>.VirtualBoardWrapperShipInterface> enemyShips = virtualBoard.GetShipInterfaceOnAllShipsWhere(a=>Tools.IsAnotherTeam(ship,a));
+            List<NewVirtualBoard<VirtualBoardData>.ShipInterface> enemyShips = virtualBoard.GetShipInterfaceOnAllShipsWhere(a=>Tools.IsAnotherTeam(ship,a));
 
             AttackResult? bestAttack = null;
-            foreach (VirtualBoardWrapper<VirtualBoardData>.VirtualBoardWrapperShipInterface targetShipI in enemyShips)
+            foreach (NewVirtualBoard<VirtualBoardData>.ShipInterface targetShipI in enemyShips)
             {
                 IShipWeapon? bestWeapon = null;
                 float bestAverageDamage = 0f;

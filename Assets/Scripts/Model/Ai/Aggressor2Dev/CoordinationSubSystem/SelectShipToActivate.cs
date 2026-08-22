@@ -10,7 +10,7 @@ namespace AI.Aggressor2Dev.Coordination
 {
     public static class ActivationPhaseOrder
     {
-        public static GenericShip SelectShipFromList(List<GenericShip> ships, VirtualBoardWrapper<VirtualBoardData> virtualBoard)
+        public static GenericShip SelectShipFromList(List<GenericShip> ships, NewVirtualBoard<VirtualBoardData> virtualBoard)
         {
             throw new NotImplementedException();
         }

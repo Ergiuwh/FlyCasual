@@ -8,16 +8,16 @@ namespace AI.Aggressor2Dev.Navigation
 {
     public class ImprovementSuggestions
     {
-        public List<VirtualBoardWrapper<VirtualBoardData>> possibleSuggestedBoards;
+        public List<NewVirtualBoard<VirtualBoardData>> possibleSuggestedBoards;
 
-        public ImprovementSuggestions(List<VirtualBoardWrapper<VirtualBoardData>> virtualBoards)
+        public ImprovementSuggestions(List<NewVirtualBoard<VirtualBoardData>> virtualBoards)
         {
             possibleSuggestedBoards = virtualBoards;
         }
     }
     public static class ScoreVirtualBoardFns
     {
-        public static (double, ImprovementSuggestions) CalculateWithSuggestions(VirtualBoardWrapper<VirtualBoardData> virtualBoard)
+        public static (double, ImprovementSuggestions) CalculateWithSuggestions(NewVirtualBoard<VirtualBoardData> virtualBoard)
         {
             throw new NotImplementedException();
         }

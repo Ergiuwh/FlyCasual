@@ -3,8 +3,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using AI.Helpers.Navigation;
 using AI.Helpers.Types;
+using Players;
 using Ship;
 
 namespace AI.Aggressor2Dev.Navigation
@@ -20,16 +22,42 @@ namespace AI.Aggressor2Dev.Navigation
     }
 
     public static class PlanDialFns {
-        public static IEnumerator CreateDialPlan(out DialPlan? writeDialPlanTo)
+        public static IEnumerator CreateDialPlan(DialPlan? writeDialPlanTo)
         {
-            throw new NotImplementedException();
+            List<DialPlan> locationsToSearch = CreateSeedPlans(new());
 
-            writeDialPlanTo = new(new());
+            throw new NotImplementedException();
         }
 
-        public static List<VirtualBoardWrapper<VirtualBoardData>> CreateSeedPoints(VirtualBoardWrapper<VirtualBoardData> virtualBoard)
+        private struct VirtualBoardResult
         {
-            throw new NotImplementedException();
+            public DialPlan Plan;
+            public float Score;
+
+            public VirtualBoardResult(DialPlan plan, float score)
+            {
+                Plan = plan;
+                Score = score;
+            }
+        }
+
+        public static List<DialPlan> CreateSeedPlans(NewVirtualBoard<VirtualBoardData> virtualBoard)
+        {
+            List<DialPlan> result = new();
+            List<GenericShip> myShips = virtualBoard.Ships.Keys.Where(IsShipOnMyTeam).ToList();
+            Dictionary<GenericShip, Maneuver> allStraightTwo = new();
+            foreach (GenericShip ship in myShips)
+            {
+                allStraightTwo[ship] = new("2.F.S");
+            }
+            result.Add(new(allStraightTwo));
+            return result;
+        }
+
+        private static bool IsShipOnMyTeam(GenericShip ship)
+        {
+            GenericPlayer CurrentPlayer = Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer);
+            return ship.Owner == CurrentPlayer;
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Players
     {
         private DialPlan? DialPlan;
 
-        private Dictionary<string, VirtualBoardWrapper<VirtualBoardData>> VirtualBoardCache;
+        private Dictionary<string, NewVirtualBoard<VirtualBoardData>> VirtualBoardCache;
 
         public Aggressor2DevAiPlayer() : base()
         {
@@ -44,7 +44,7 @@ namespace Players
 
         private IEnumerator CalculateNavigation()
         {
-            yield return PlanDialFns.CreateDialPlan(out DialPlan);
+            yield return PlanDialFns.CreateDialPlan(DialPlan);
 
             AssignManeuversRecursive();
         }
