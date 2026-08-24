@@ -1,4 +1,6 @@
-﻿using ActionsList;
+﻿#nullable enable
+
+using ActionsList;
 using GameModes;
 using Ship;
 using SubPhases;
@@ -71,7 +73,7 @@ namespace Players
         {
             if (!DebugManager.DebugStraightToCombat)
             {
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive);
+                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive, WaitAfterAssigningDial);
             }
             else
             {
@@ -80,7 +82,7 @@ namespace Players
             }
         }
 
-        protected override GenericShip SelectTargetForAttack()
+        protected override GenericShip? SelectTargetForAttack()
         {
             if (DebugManager.DebugNoCombat) return null;
 
