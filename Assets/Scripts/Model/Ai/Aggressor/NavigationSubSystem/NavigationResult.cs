@@ -1,4 +1,6 @@
-﻿using Movement;
+﻿#nullable enable
+
+using Movement;
 using Ship;
 using System;
 using System.Collections.Generic;
@@ -26,7 +28,7 @@ namespace AI.Aggressor
 
         public bool isBumped;
 
-        public GenericMovement movement;
+        public GenericMovement? movement;
 
         public int Priority { get; private set; }
 
@@ -55,7 +57,7 @@ namespace AI.Aggressor
 
             if (isBumped) Priority -= 500;
 
-            if (Selection.ThisShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement.Bearing != ManeuverBearing.Straight)
+            if (Selection.ThisShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement?.Bearing != ManeuverBearing.Straight)
             {
                 if (Selection.ThisShip.State.HullCurrent + Selection.ThisShip.State.ShieldsCurrent == 1)
                 {
@@ -67,7 +69,7 @@ namespace AI.Aggressor
                 }
             }
 
-            switch (movement.ColorComplexity)
+            switch (movement?.ColorComplexity)
             {
                 case MovementComplexity.Easy:
                     if (Selection.ThisShip.IsStressed) Priority += 500;

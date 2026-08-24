@@ -20,6 +20,15 @@ namespace AI.Aggressor
 
         public ShipPositionInfo PredictedPosition { get; set; }
 
+        public AggressorVirtualShipInfo()
+        {
+            
+        }
+        public AggressorVirtualShipInfo(GenericShip ship)
+        {
+            
+        }
+
         public AggressorVirtualShipInfo SetPlannedManeuver(Maneuver maneuver)
         {
             PlannedManeuver = maneuver;
