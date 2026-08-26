@@ -47,7 +47,7 @@ public static class DirectionsMenu
 
         Phases.CurrentSubPhase.IsReadyForCommands = true;
 
-        if (isRegularPlanning) Selection.ThisShip.Owner.AskAssignManeuver();
+        Selection.ThisShip.Owner.AskAssignManeuver();
 
         if (!HasAnyAvailableManeuver)
         {

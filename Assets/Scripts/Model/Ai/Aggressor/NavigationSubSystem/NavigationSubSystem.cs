@@ -50,6 +50,8 @@ namespace AI.Aggressor
 
             NewVirtualBoard.ClaimActive();
             NewVirtualBoard.UpdateToReal(a => new(a));
+            NewVirtualBoard.ApplyVirtualPositions();
+
             ShowCalculationsStart();
 
             SwitchEnemyShipsToSimpleVirtualPositions();
@@ -228,8 +230,6 @@ namespace AI.Aggressor
 
             while (orderOfActivation.Count > 0)
             {
-                NewVirtualBoard.ClaimActive();
-
                 SetVirtualPositionsForShipsWithPreviousActivations(orderOfActivation);
 
                 GenericShip ship = orderOfActivation.First();
@@ -243,9 +243,6 @@ namespace AI.Aggressor
                 {
                     yield return PredictCollisionDetectionOfEnemyShip(ship);
                 }
-
-                NewVirtualBoard.Deactivate();
-                VirtualBoardManager.ActivateRealBoard();
             }
         }
 
@@ -485,6 +482,14 @@ namespace AI.Aggressor
         {
             ShipMovementScript.SendAssignManeuverCommand(NewVirtualBoard.GetShipData(Selection.ThisShip).PlannedManeuver.ToString());
             GameManagerScript.Wait(delay, delegate { Selection.DeselectThisShip(); callBack(); });
+        }
+
+        public static void EnsureShipHasPlannedManeuver(GenericShip ship)
+        {
+            if (NewVirtualBoard.GetShipData(ship).PlannedManeuver == null)
+            {
+                NewVirtualBoard.GetShipData(ship).SetPlannedManeuver(new AI.Helpers.Types.Maneuver("2.F.S"));
+            }
         }
 
         // Low Priority

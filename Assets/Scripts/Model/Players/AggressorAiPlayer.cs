@@ -41,9 +41,9 @@ namespace Players
 
         private void AssignManeuversRecursive()
         {
-            GenericShip shipWithoutManeuver = (!DebugManager.DebugStraightToCombat) ?
-                AI.Aggressor.NavigationSubSystem.GetNextShipWithoutAssignedManeuver() :
-                GetNextShipWithoutAssignedManeuver();
+            GenericShip shipWithoutManeuver = (DebugManager.DebugStraightToCombat) ?
+                GetNextShipWithoutAssignedManeuver() :
+                AI.Aggressor.NavigationSubSystem.GetNextShipWithoutAssignedManeuver();
 
             if (shipWithoutManeuver != null)
             {
@@ -71,14 +71,15 @@ namespace Players
 
         public override void AskAssignManeuver()
         {
-            if (!DebugManager.DebugStraightToCombat)
-            {
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive, WaitAfterAssigningDial);
-            }
-            else
+            if (DebugManager.DebugStraightToCombat)
             {
                 ShipMovementScript.SendAssignManeuverCommand("2.F.S");
                 AssignManeuversRecursive();
+            }
+            else
+            {
+                AI.Aggressor.NavigationSubSystem.EnsureShipHasPlannedManeuver(Selection.ThisShip);
+                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive, WaitAfterAssigningDial);
             }
         }
 

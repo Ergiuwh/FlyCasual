@@ -299,13 +299,11 @@ namespace AI.Helpers.Navigation
                 }
                 else
                 {
-                    ShipPositionInfo savedModelPosition = new(thisShip.GetShipAllPartsTransform().position, thisShip.GetShipAllPartsTransform().eulerAngles);
+                    thisShip.GetShipAllPartsTransform().GetPositionAndRotation(out Vector3 savedModelPosition, out Quaternion savedModelRotation);
                     thisShip.SetPositionInfo(VirtualPosition);
-                    thisShip.GetShipAllPartsTransform().position = savedModelPosition.Position;
-                    thisShip.GetShipAllPartsTransform().eulerAngles = savedModelPosition.Angles;
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").position = VirtualPosition.Position;
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").localPosition += new Vector3(0, 0.150289f, 1.156069f);
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").eulerAngles = VirtualPosition.Angles;
+                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").GetPositionAndRotation(out Vector3 savedHitboxPosition, out Quaternion savedHitboxRotation);
+                    thisShip.GetShipAllPartsTransform().SetPositionAndRotation(savedModelPosition,savedModelRotation);
+                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").SetPositionAndRotation(savedHitboxPosition, savedHitboxRotation);
                 }
             }
         }
@@ -342,6 +340,10 @@ namespace AI.Helpers.Navigation
                 {
                     shipInfoPair.Value.SavedCollisionsRemoved = true;
                     shipInfoPair.Value.ReturnCollisions(shipInfoPair.Key);
+                }
+                else
+                {
+                    shipInfoPair.Value.SavedCollisionsRemoved = false;
                 }
             }
 
@@ -406,7 +408,7 @@ namespace AI.Helpers.Navigation
             {
                 foreach (GenericShip ship in Ships.Keys)
                 {
-                    ship.SetPositionInfo(Ships[ship].VirtualPosition);
+                    Ships[ship].ApplyPosition(ship);
                 }
                 State = VirtualBoardState.Virtual;
                 return this;
@@ -429,12 +431,17 @@ namespace AI.Helpers.Navigation
                 VirtualBoardManager.UpdateRealBoard();
             }
 
+            List<GenericShip> shipsToRemove = new();
             foreach (GenericShip ship in Ships.Keys)
             {
                 if (!VirtualBoardManager.RealBoard.Ships.ContainsKey(ship))
                 {
-                    Ships.Remove(ship);
+                    shipsToRemove.Add(ship);
                 }
+            }
+            foreach (GenericShip ship in shipsToRemove)
+            {
+                Ships.Remove(ship);
             }
 
             foreach (GenericShip ship in VirtualBoardManager.RealBoard.Ships.Keys)
@@ -454,8 +461,8 @@ namespace AI.Helpers.Navigation
 
         public struct ShipInterface
         {
-            public readonly NewVirtualBoard<T> CreatedBy;
-            public readonly GenericShip Ship;
+            public NewVirtualBoard<T> CreatedBy;
+            public GenericShip Ship;
 
             public readonly ShipInfo ShipInfo
             {

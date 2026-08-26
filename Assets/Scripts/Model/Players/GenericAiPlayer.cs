@@ -16,6 +16,10 @@ namespace Players
     public partial class GenericAiPlayer : GenericPlayer
     {
         public static float WaitAfterAssigningDial = 0.2f;
+        public static float WaitAfterDeployingShip = 0.5f;
+        public static float WaitAfterDiceModification = 1f;
+        public static float WaitAfterPlacingObstacle = 1f;
+        public static float WaitWhenInformingAboutCrit = 3f;
 
         public GenericAiPlayer() : base()
         {
@@ -37,7 +41,7 @@ namespace Players
                     Vector3 position = shipHolder.Value.GetPosition() - direction * new Vector3(0, 0, Board.BoardIntoWorld(Board.DISTANCE_1 + Board.RANGE_1));
 
                     GameManagerScript.Wait(
-                        0.5f,
+                        WaitAfterDeployingShip,
                         delegate {
                             GameCommand command = SetupSubPhase.GeneratePlaceShipCommand(shipHolder.Value.ShipId, position, shipHolder.Value.GetAngles());
                             GameMode.CurrentGameMode.ExecuteCommand(command);
@@ -264,7 +268,7 @@ namespace Players
 
                     if (!DebugManager.BatchAiSquadTestingModeActive)
                     {
-                        GameManagerScript.Wait(1, delegate
+                        GameManagerScript.Wait(WaitAfterDiceModification, delegate
                         {
                             GameCommand command = DiceModificationsManager.GenerateDiceModificationCommand(prioritizedActionEffect.Key.Name);
                             GameMode.CurrentGameMode.ExecuteCommand(command);
@@ -282,7 +286,7 @@ namespace Players
             {
                 if (!DebugManager.BatchAiSquadTestingModeActive)
                 {
-                    GameManagerScript.Wait(1, delegate {
+                    GameManagerScript.Wait(WaitAfterDiceModification, delegate {
                         GameCommand command = DiceModificationsManager.GenerateDiceModificationCommand("OK");
                         GameMode.CurrentGameMode.ExecuteCommand(command);
                     });
@@ -381,7 +385,7 @@ namespace Players
             }
             else
             {
-                GameManagerScript.Wait(1, delegate
+                GameManagerScript.Wait(WaitAfterPlacingObstacle, delegate
                 {
                     (Phases.CurrentSubPhase as ObstaclesPlacementSubPhase).PlaceRandom();
                     Messages.ShowInfo("The AI has placed an obstacle");
@@ -403,7 +407,7 @@ namespace Players
             {
                 if (!DebugManager.BatchAiSquadTestingModeActive)
                 {
-                    GameManagerScript.Wait(3, InformCrit.ButtonConfirm);
+                    GameManagerScript.Wait(WaitWhenInformingAboutCrit, InformCrit.ButtonConfirm);
                 }
                 else
                 {
