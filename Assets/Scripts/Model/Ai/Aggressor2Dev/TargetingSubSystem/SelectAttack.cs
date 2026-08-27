@@ -49,8 +49,8 @@ namespace AI.Aggressor2Dev.Targeting
                 float bestAverageDamage = 0f;
                 foreach (IShipWeapon weapon in targetShipI.Ship.GetAllWeapons())
                 {
+                    if (!weapon.IsShotAvailable(targetShipI.Ship)) continue;
                     ShotInfo shotInfo = new(ship, targetShipI.Ship, weapon);
-                    if (!shotInfo.IsShotAvailable) continue;
                     float averageDamage = FastAttackCalculations.AverageHits(shotInfo, ship, targetShipI.Ship, weapon);
                     if (averageDamage > bestAverageDamage)
                     {
