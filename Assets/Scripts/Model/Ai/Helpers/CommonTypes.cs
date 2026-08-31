@@ -43,7 +43,7 @@ namespace AI.Helpers.Types
         }
     }
 
-    public class ActiveVirtualBoard<T> where T : ICloneable
+    public class ActiveVirtualBoard<T> where T : class, ICloneable
     {
         private NewVirtualBoard<T> internalVirtualBoard;
 
@@ -65,7 +65,7 @@ namespace AI.Helpers.Types
         }
     }
 
-    public class InactiveVirtualBoard<T> where T : ICloneable
+    public class InactiveVirtualBoard<T> where T : class, ICloneable
     {
         private NewVirtualBoard<T> internalVirtualBoard;
 

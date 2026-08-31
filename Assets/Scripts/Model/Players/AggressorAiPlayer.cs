@@ -2,8 +2,10 @@
 
 using ActionsList;
 using GameModes;
+using MainPhases;
 using Ship;
 using SubPhases;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -64,6 +66,8 @@ namespace Players
 
         private void OpenDirectionsUiSilent()
         {
+            if (Selection.ThisShip is null ) { throw new Exception(); }
+
             GameMode.CurrentGameMode.ExecuteCommand(
                 PlanningSubPhase.GenerateSelectShipToAssignManeuver(Selection.ThisShip.ShipId)
             );
@@ -71,15 +75,27 @@ namespace Players
 
         public override void AskAssignManeuver()
         {
-            if (DebugManager.DebugStraightToCombat)
-            {
-                ShipMovementScript.SendAssignManeuverCommand("2.F.S");
-                AssignManeuversRecursive();
+            if (Phases.CurrentPhase is PlanningPhase) {
+                AskAssignManeuver(AssignManeuversRecursive);
             }
             else
             {
+                AskAssignManeuver(delegate {  });
+            }
+        }
+
+        private void AskAssignManeuver(Action callback)
+        {
+            if (DebugManager.DebugStraightToCombat)
+            {
+                ShipMovementScript.SendAssignManeuverCommand("2.F.S");
+                callback();
+            }
+            else
+            {
+                if (Selection.ThisShip is null ) { throw new Exception(); }
                 AI.Aggressor.NavigationSubSystem.EnsureShipHasPlannedManeuver(Selection.ThisShip);
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(AssignManeuversRecursive, WaitAfterAssigningDial);
+                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(callback, WaitAfterAssigningDial);
             }
         }
 
@@ -92,6 +108,8 @@ namespace Players
 
         protected override void PerformActionFromList(List<GenericAction> actionsList)
         {
+            if (Selection.ThisShip is null ) { throw new Exception(); }
+
             bool isActionTaken = false;
 
             List<GenericAction> availableActionsList = actionsList;

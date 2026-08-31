@@ -39,15 +39,15 @@ namespace AI.Helpers.Navigation
             return bestTurnManeuvers;
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver) where T : ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver) where T : class, ICloneable {
             yield return ApplyManeuverOnVirtualBoard<T>(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver.ToString()));
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, string maneuver) where T : ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, string maneuver) where T : class, ICloneable {
             yield return ApplyManeuverOnVirtualBoard<T>(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver));
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, GenericMovement movement) where T : ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, GenericMovement movement) where T : class, ICloneable {
             virtualBoard.AssertIsInVirtualPosition();
 
             MovementPrediction prediction = new(ship, movement);

@@ -1,17 +1,29 @@
-﻿using System.Collections;
+﻿#nullable enable
+
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using Ship;
 
 public static class Selection {
 
-    public static GenericShip ThisShip;
-    public static GenericShip AnotherShip;
-    public static GenericShip ActiveShip;
-    public static GenericShip HoveredShip;
-    public static List<GenericShip> MultiSelectedShips { get; private set; }
+    private static GenericShip? thisShip;
+    public static GenericShip? ThisShip
+    {
+        get
+        {
+            return thisShip;
+        }
+        set
+        {
+            Logger.LogSetThisShip(value);
+            thisShip = value;
+        }
+    }
+    public static GenericShip? AnotherShip;
+    public static GenericShip? ActiveShip;
+    public static GenericShip? HoveredShip;
+    public static List<GenericShip> MultiSelectedShips { get; private set; } = new();
 
     public static void Initialize()
     {
@@ -183,6 +195,8 @@ public static class Selection {
 
     private static void ChangeActiveShipUsingThisShip()
     {
+        if (ThisShip is null ) { throw new System.Exception(); }
+
         ThisShip.ToggleCollisionDetection(true);
         Roster.MarkShip(ThisShip, Color.green);
         ThisShip.HighlightThisSelected();
@@ -274,6 +288,23 @@ public static class Selection {
         foreach (GenericShip ship in MultiSelectedShips)
         {
             ship.TurnOffMultiSelectionProjector();
+        }
+    }
+
+    public static class Logger
+    {
+        private static bool? doLogging;
+        public static bool DoLogging
+        {
+            get { return doLogging ?? false; }
+            set { doLogging = value; }
+        }
+
+        public static void LogSetThisShip(GenericShip? ship) {
+            if (DoLogging)
+            {
+                Console.Write($"SelectionLogger: ThisShip set to {ship?.ShipId}.");
+            }
         }
     }
 }

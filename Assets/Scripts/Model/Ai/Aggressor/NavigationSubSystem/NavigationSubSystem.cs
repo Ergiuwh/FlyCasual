@@ -49,7 +49,7 @@ namespace AI.Aggressor
             }
 
             NewVirtualBoard.ClaimActive();
-            NewVirtualBoard.UpdateToReal(a => new(a));
+            NewVirtualBoard.UpdateToReal(NewShipInitialiser);
             NewVirtualBoard.ApplyVirtualPositions();
 
             ShowCalculationsStart();
@@ -57,7 +57,7 @@ namespace AI.Aggressor
             SwitchEnemyShipsToSimpleVirtualPositions();
             yield return PredictAllFinalPositionsOfOwnShips();
 
-            NewVirtualBoard.UpdateToReal(a => new(a));
+            NewVirtualBoard.UpdateToReal(NewShipInitialiser);
 
             List<GenericShip> orderOfActivation = GenerateOrderOfActivation();
 
@@ -316,7 +316,7 @@ namespace AI.Aggressor
 
                 CurrentNavigationResult.CalculatePriority();
 
-                NewVirtualBoard.GetShipData(ship).NavigationResults[maneuverToCheck.Key] = CurrentNavigationResult;
+                (NewVirtualBoard.GetShipData(ship).NavigationResults ?? throw new Exception())[maneuverToCheck.Key] = CurrentNavigationResult;
 
                 bestPriority = NewVirtualBoard.GetShipData(ship).NavigationResults.Max(n => n.Value.Priority);
 
@@ -346,13 +346,13 @@ namespace AI.Aggressor
             enemiesInShotRange = 0;
             foreach (GenericShip enemyShip in ship.Owner.EnemyShips.Values)
             {
-                DistanceInfo distInfo = new DistanceInfo(ship, enemyShip);
+                DistanceInfo distInfo = new(ship, enemyShip);
                 if (distInfo.MinDistance.DistanceReal < minDistanceToEnemyShip)
                 {
                     minDistanceToEnemyShip = distInfo.MinDistance.DistanceReal;
                 }
 
-                ShotInfo shotInfo = new ShotInfo(ship, enemyShip, ship.PrimaryWeapons.First());
+                ShotInfo shotInfo = new(ship, enemyShip, ship.PrimaryWeapons.First());
                 if (shotInfo.IsShotAvailable)
                 {
                     enemiesInShotRange++;
@@ -480,12 +480,24 @@ namespace AI.Aggressor
 
         public static void AssignPlannedManeuver(Action callBack, float delay)
         {
+            if (Selection.ThisShip is null ) { throw new Exception(); }
             ShipMovementScript.SendAssignManeuverCommand(NewVirtualBoard.GetShipData(Selection.ThisShip).PlannedManeuver.ToString());
             GameManagerScript.Wait(delay, delegate { Selection.DeselectThisShip(); callBack(); });
         }
 
+        /// <summary>
+        /// Used for VirtualBoard.UpdateToReal(NewShipInitialiser);
+        /// </summary>
+        /// <param name="ship"></param>
+        /// <returns></returns>
+        private static AggressorVirtualShipInfo NewShipInitialiser(GenericShip ship)
+        {
+            return new AggressorVirtualShipInfo(ship);
+        }
+
         public static void EnsureShipHasPlannedManeuver(GenericShip ship)
         {
+            NewVirtualBoard.UpdateToReal(NewShipInitialiser);
             if (NewVirtualBoard.GetShipData(ship).PlannedManeuver == null)
             {
                 NewVirtualBoard.GetShipData(ship).SetPlannedManeuver(new AI.Helpers.Types.Maneuver("2.F.S"));

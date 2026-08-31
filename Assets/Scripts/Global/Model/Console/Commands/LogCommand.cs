@@ -11,8 +11,8 @@ namespace CommandsList
         {
             Keyword = "log";
             Description = "Manipulate various logging features\n"
-                        + "log (src:<sources>|source:<sources>) [enable/disable/on/off] [clear] [print]"
-                        + "where source: (virtualboardmanager, virtualbm, vbm)";
+                        + "log (src:<source>|source:<source>) [enable/disable/on/off]\n"
+                        + "where source: (virtualboardmanager, virtualbm, vbm), selection";
 
             Console.AddAvailableCommand(this);
         }
@@ -69,12 +69,10 @@ namespace CommandsList
                 case "virtualboardmanager":
                 case "virtualbm":
                 case "vbm":
-                    SetVirtualBoardManagerLogger(setOnTo, parameters.ContainsKey("clear"));
-                    if (parameters.ContainsKey("print"))
-                    {
-                        PrintVirtualBoardManagerLogs();
-                    }
-
+                    SetVirtualBoardManagerLogger(setOnTo);
+                    break;
+                case "selection":
+                    SetSelectionLogger(setOnTo);
                     break;
                 default:
                     ShowHelp();
@@ -82,16 +80,10 @@ namespace CommandsList
             }
         }
         
-        private void SetVirtualBoardManagerLogger(bool? setOnTo, bool clear)
+        private void SetVirtualBoardManagerLogger(bool? setOnTo)
         {
             if (setOnTo != null) {
-                VirtualBoardManager.Logs.DoLogging = (bool)setOnTo;
-            }
-
-            if (clear)
-            {
-                VirtualBoardManager.Logs.Values.Clear();
-                VirtualBoardManager.Logs.Values.TrimExcess();
+                VirtualBoardManager.Logger.DoLogging = (bool)setOnTo;
             }
 
             string setOnToString;
@@ -108,20 +100,30 @@ namespace CommandsList
                     break;
             }
 
-            string clearString = clear ? "clear" : "";
-
-            Console.Write($"log source:virtualboardmanager {setOnToString} {clearString}");
+            Console.Write($"log source:virtualboardmanager {setOnToString}");
         }
-        
-        private void PrintVirtualBoardManagerLogs()
+
+        private void SetSelectionLogger(bool? setOnTo)
         {
-            if (VirtualBoardManager.Logs.Values.Count > 0) {
-                Console.Write("Virtual Board Manager Logs:",true);
-                foreach (var log in VirtualBoardManager.Logs.Values)
-                {
-                    Console.Write(log.ToString());
-                }
+            if (setOnTo != null) {
+                VirtualBoardManager.Logger.DoLogging = (bool)setOnTo;
             }
+
+            string setOnToString;
+            switch (setOnTo)
+            {
+                case null:
+                    setOnToString = "";
+                    break;
+                case false:
+                    setOnToString = "disable";
+                    break;
+                case true:
+                    setOnToString = "enable";
+                    break;
+            }
+
+            Console.Write($"log source:selection {setOnToString}");
         }
     }
 }
