@@ -208,8 +208,7 @@ namespace AI.Helpers.Navigation
 
         public enum VirtualBoardState
         {
-            Virtual,
-            Other,
+            Active,
             Inactive,
         }
 
@@ -287,7 +286,7 @@ namespace AI.Helpers.Navigation
                 }
             }
 
-            State = VirtualBoardState.Other;
+            State = VirtualBoardState.Active;
         }
 
         public void RecoverActiveInternal()
@@ -378,13 +377,13 @@ namespace AI.Helpers.Navigation
 
         public NewVirtualBoard<T> ApplyVirtualPositions()
         {
-            if (State == VirtualBoardState.Other || State == VirtualBoardState.Virtual)
+            if (State == VirtualBoardState.Active)
             {
                 foreach (GenericShip ship in Ships.Keys)
                 {
                     Ships[ship].ApplyPosition(ship);
                 }
-                State = VirtualBoardState.Virtual;
+                State = VirtualBoardState.Active;
                 return this;
             }
             else
@@ -548,17 +547,9 @@ namespace AI.Helpers.Navigation
             return result;
         }
 
-        public void AssertIsInVirtualPosition()
-        {
-            if (State != VirtualBoardState.Virtual)
-            {
-                throw new Exception("VirtualBoard assert failed: AssertIsInVirtualPosition");
-            }
-        }
-
         public void AssertIsActive()
         {
-            if (State == VirtualBoardState.Inactive)
+            if (State != VirtualBoardState.Active)
             {
                 throw new Exception("VirtualBoard assert failed: AssertIsActive");
             }
@@ -574,7 +565,7 @@ namespace AI.Helpers.Navigation
 
         public ShotInfo GenerateShotInfo(GenericShip attacker, GenericShip defender, IShipWeapon weapon)
         {
-            AssertIsInVirtualPosition();
+            AssertIsActive();
             return new ShotInfo(attacker, defender, weapon);
         }
 
