@@ -93,20 +93,20 @@ namespace CommandsList
                     setOnToString = "";
                     break;
                 case false:
-                    setOnToString = "disable";
+                    setOnToString = "off";
                     break;
                 case true:
-                    setOnToString = "enable";
+                    setOnToString = "on";
                     break;
             }
 
-            Console.Write($"log source:virtualboardmanager {setOnToString}");
+            Console.Write($"log src:virtualboardmanager {setOnToString}");
         }
 
         private void SetSelectionLogger(bool? setOnTo)
         {
             if (setOnTo != null) {
-                VirtualBoardManager.Logger.DoLogging = (bool)setOnTo;
+                Selection.Logger.DoLogging = (bool)setOnTo;
             }
 
             string setOnToString;
@@ -116,14 +116,14 @@ namespace CommandsList
                     setOnToString = "";
                     break;
                 case false:
-                    setOnToString = "disable";
+                    setOnToString = "off";
                     break;
                 case true:
-                    setOnToString = "enable";
+                    setOnToString = "on";
                     break;
             }
 
-            Console.Write($"log source:selection {setOnToString}");
+            Console.Write($"log src:selection {setOnToString}");
         }
     }
 }

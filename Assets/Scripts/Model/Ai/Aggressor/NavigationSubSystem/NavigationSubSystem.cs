@@ -478,11 +478,10 @@ namespace AI.Aggressor
                 .FirstOrDefault();
         }
 
-        public static void AssignPlannedManeuver(Action callBack, float delay)
+        public static void AssignPlannedManeuver()
         {
             if (Selection.ThisShip is null ) { throw new Exception(); }
             ShipMovementScript.SendAssignManeuverCommand(NewVirtualBoard.GetShipData(Selection.ThisShip).PlannedManeuver.ToString());
-            GameManagerScript.Wait(delay, delegate { Selection.DeselectThisShip(); callBack(); });
         }
 
         /// <summary>

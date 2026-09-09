@@ -76,26 +76,33 @@ namespace Players
         public override void AskAssignManeuver()
         {
             if (Phases.CurrentPhase is PlanningPhase) {
-                AskAssignManeuver(AssignManeuversRecursive);
+                AssignManeuverToThisShip();
+                if (DebugManager.DebugStraightToCombat)
+                {
+                    AssignManeuversRecursive();
+                }
+                else
+                {
+                    GameManagerScript.Wait(WaitAfterAssigningDial, delegate { Selection.DeselectThisShip(); AssignManeuversRecursive(); });
+                }
             }
             else
             {
-                AskAssignManeuver(delegate {  });
+                AssignManeuverToThisShip();
             }
         }
 
-        private void AskAssignManeuver(Action callback)
+        private void AssignManeuverToThisShip()
         {
             if (DebugManager.DebugStraightToCombat)
             {
                 ShipMovementScript.SendAssignManeuverCommand("2.F.S");
-                callback();
             }
             else
             {
                 if (Selection.ThisShip is null ) { throw new Exception(); }
                 AI.Aggressor.NavigationSubSystem.EnsureShipHasPlannedManeuver(Selection.ThisShip);
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver(callback, WaitAfterAssigningDial);
+                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver();
             }
         }
 

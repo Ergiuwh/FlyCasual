@@ -7,6 +7,7 @@ using Players;
 using System;
 using BoardTools;
 using GameModes;
+using AI.Helpers.Navigation;
 
 public static partial class Phases
 {
@@ -63,6 +64,7 @@ public static partial class Phases
         CurrentPhase = new SetupPhase();
 
         DebugManager.ErrorIsAlreadyReported = false;
+        VirtualBoardManager.InitializeForGame();
 
         Events.CallGameStartTrigger(CurrentPhase.StartPhase);
     }

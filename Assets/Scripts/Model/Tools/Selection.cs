@@ -57,8 +57,7 @@ public static class Selection {
             if (mouseKeyIsPressed > 0)
             {
                 bool isShipHit = false;
-                RaycastHit hitInfo = new RaycastHit();
-                if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo))
+                if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hitInfo))
                 {
                     if (hitInfo.transform.tag.StartsWith("ShipId:"))
                     {
@@ -76,8 +75,7 @@ public static class Selection {
 
     private static void TryMarkShipByModel()
     {
-        RaycastHit hitInfo = new RaycastHit();
-        if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo))
+        if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hitInfo))
         {
             TryMarkShip(hitInfo.transform.tag);
         }

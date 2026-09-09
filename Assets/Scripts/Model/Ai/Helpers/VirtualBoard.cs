@@ -12,9 +12,10 @@ namespace AI.Helpers.Navigation
     {
         public static IVirtualBoard? ActiveVirtualBoard { get; private set; }
         public static IVirtualBoard? LastActiveVirtualBoard { get; private set; }
-        public static NewVirtualBoard<EmptyClass> RealBoard;
+        public static NewVirtualBoard<EmptyClass> RealBoard = new();
 
-        static VirtualBoardManager() {
+        public static void InitializeForGame()
+        {
             RealBoard = new();
             ActiveVirtualBoard = RealBoard;
         }
