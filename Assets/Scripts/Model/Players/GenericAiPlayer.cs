@@ -9,6 +9,7 @@ using BoardTools;
 using SubPhases;
 using GameModes;
 using GameCommands;
+using Movement;
 
 namespace Players
 {
@@ -323,6 +324,11 @@ namespace Players
             doWithManeuverString(Selection.ThisShip.AssignedManeuver.ToString());
 
             callback();
+        }
+
+        public override void SelectManeuverFrom(Action<string> doWithManeuverString, Action callback, List<ManeuverHolder> options)
+        {
+            throw new NotImplementedException();
         }
 
         public override void StartExtraAttack()

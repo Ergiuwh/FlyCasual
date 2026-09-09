@@ -5,6 +5,7 @@ using System.Linq;
 using ActionsList;
 using GameCommands;
 using GameModes;
+using Movement;
 using Ship;
 using SubPhases;
 using UnityEngine;
@@ -69,6 +70,13 @@ namespace Players
             DirectionsMenu.Show(doWithManeuverString, callback, filter);
 
             base.SelectManeuver(doWithManeuverString, callback, filter);
+        }
+
+        public override void SelectManeuverFrom(Action<string> doWithManeuverString, Action callback, List<ManeuverHolder> options)
+        {
+            DirectionsMenu.ShowWithOptions(doWithManeuverString, callback, options);
+
+            base.SelectManeuverFrom(doWithManeuverString, callback, options);
         }
 
         public override void SelectShipForAbility()

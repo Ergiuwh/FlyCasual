@@ -10,6 +10,7 @@ using GameCommands;
 using Obstacles;
 using System.Linq;
 using Remote;
+using Movement;
 
 public enum Faction
 {
@@ -174,6 +175,11 @@ namespace Players
         public virtual void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null) { }
 
         public virtual void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
+        {
+            Phases.CurrentSubPhase.IsReadyForCommands = true;
+        }
+
+        public virtual void SelectManeuverFrom(Action<string> doWithManeuverString, Action callback, List<ManeuverHolder> options)
         {
             Phases.CurrentSubPhase.IsReadyForCommands = true;
         }

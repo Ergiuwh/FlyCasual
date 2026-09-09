@@ -1,4 +1,7 @@
-﻿using Ship;
+﻿#nullable enable annotations
+
+using Movement;
+using Ship;
 using Tokens;
 
 namespace ActionsList
@@ -6,6 +9,9 @@ namespace ActionsList
 
     public class SlamAction : GenericAction
     {
+        private GenericMovement? savedManeuver;
+        private ShipPositionInfo? savedPositionInfo;
+
         public SlamAction()
         {
             Name = DiceModificationName = "SLAM";
@@ -36,15 +42,23 @@ namespace ActionsList
                 Phases.CurrentSubPhase.Pause();
 
                 Selection.ThisShip.Owner.SelectManeuver(
-                    ShipMovementScript.SendAssignManeuverCommand,
-                    ExecuteSelectedManeuver,
+                    DoWithManeuver,
+                    delegate {  },
                     IsSameSpeed
                 );
             }
         }
 
-        private void ExecuteSelectedManeuver()
+        /// <summary>
+        /// Calls ship.CallUpdateChosenSlamTemplate()
+        /// </summary>
+        /// <param name="callback"></param>
+        private void DoWithManeuver(string maneuverCode)
         {
+            savedManeuver = Selection.ThisShip.AssignedManeuver;
+            savedPositionInfo = Selection.ThisShip.GetPositionInfo();
+
+            ShipMovementScript.SendAssignManeuverCommand(maneuverCode);
             Selection.ThisShip.AssignedManeuver.IsRevealDial = false;
 
             Selection.ThisShip.CallUpdateChosenSlamTemplate(Selection.ThisShip.AssignedManeuver);
@@ -59,18 +73,14 @@ namespace ActionsList
 
         private void FinishSlam()
         {
+            Selection.ThisShip.SetAssignedManeuver(savedManeuver);
             Selection.ThisShip.CallSlam(Phases.CurrentSubPhase.CallBack);
-        }
-
-        private void PerformSlamManeuver(object sender, System.EventArgs e)
-        {
-            Selection.ThisShip.AssignedManeuver.Perform();
         }
 
         private bool IsSameSpeed(string maneuverString)
         {
             bool result = false;
-            Movement.ManeuverHolder movementStruct = new Movement.ManeuverHolder(maneuverString);
+            ManeuverHolder movementStruct = new(maneuverString);
             if (movementStruct.Speed == Selection.ThisShip.AssignedManeuver.ManeuverSpeed)
             {
                 result = true;
@@ -83,7 +93,5 @@ namespace ActionsList
             int result = 0;
             return result;
         }
-
     }
-
 }
