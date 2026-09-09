@@ -362,6 +362,11 @@ public static class DirectionsMenu
             warningGO.SetActive(true);
         }
     }
+
+    public static void ShowWithOptions(Action<string> doWithSelectedManeuver, Action callback, List<ManeuverHolder> options, bool isRegularPlanning = false)
+    {
+        throw new NotImplementedException(); 
+    }
 }
 
 namespace SubPhases
