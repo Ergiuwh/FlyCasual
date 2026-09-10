@@ -132,10 +132,7 @@ namespace AI.Helpers.Navigation
         /// </summary>
         public class EmptyClass
         {
-            public object Clone()
-            {
-                return new EmptyClass();
-            }
+            
         }
 
         public interface IVirtualBoard

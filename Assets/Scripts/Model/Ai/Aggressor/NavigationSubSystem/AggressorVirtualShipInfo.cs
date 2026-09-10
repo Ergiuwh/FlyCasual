@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using System.Collections.Generic;
 using AI.Helpers.Types;
 using Ship;
@@ -56,12 +55,6 @@ namespace AI.Aggressor
         {
             OrderToActivate = orderToActivate;
             return this;
-        }
-
-        public object Clone()
-        {
-            /// No implementation currently intended.
-            throw new NotImplementedException();
         }
     }
 }

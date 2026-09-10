@@ -120,11 +120,5 @@ namespace AI.Aggressor
 
             return result;
         }
-
-        public object Clone()
-        {
-            /// No implementation currently intended.
-            throw new NotImplementedException();
-        }
     }
 }
