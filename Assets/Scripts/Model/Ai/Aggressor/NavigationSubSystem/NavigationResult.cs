@@ -40,6 +40,8 @@ namespace AI.Aggressor
                 return;
             }
 
+            if (Selection.ThisShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires Selection.ThisShip != null");
+
             if (isLandedOnObstacle) Priority -= 20000;
 
             if (isOffTheBoardNextTurn) Priority -= 40000;
