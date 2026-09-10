@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace AI.Aggressor
 {
-    public class NavigationResult : ICloneable
+    public class NavigationResult
     {
         public bool isOffTheBoard;
         public bool isLandedOnObstacle;

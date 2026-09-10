@@ -12,7 +12,7 @@ namespace AI.Helpers.Navigation
     {
         public static IVirtualBoard? ActiveVirtualBoard { get; private set; }
         public static IVirtualBoard? LastActiveVirtualBoard { get; private set; }
-        public static NewVirtualBoard<EmptyClass> RealBoard = new();
+        public static VirtualBoard<EmptyClass> RealBoard = new();
 
         public static void InitializeForGame()
         {
@@ -120,7 +120,7 @@ namespace AI.Helpers.Navigation
             {
                 if (!RealBoard.Ships.ContainsKey(ship))
                 {
-                    RealBoard.Ships.Add(ship, new NewVirtualBoard<EmptyClass>.ShipInfo(ship.GetPositionInfo(), new()));
+                    RealBoard.Ships.Add(ship, new VirtualBoard<EmptyClass>.ShipInfo(ship.GetPositionInfo(), new()));
                 }
             }
 
@@ -130,7 +130,7 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// This is used as the data type of RealBoard.
         /// </summary>
-        public class EmptyClass : ICloneable
+        public class EmptyClass
         {
             public object Clone()
             {
@@ -201,7 +201,7 @@ namespace AI.Helpers.Navigation
         }
     }
 
-    public class NewVirtualBoard<T> : VirtualBoardManager.IVirtualBoard where T: class, ICloneable
+    public class VirtualBoard<T> : VirtualBoardManager.IVirtualBoard where T: class
     {
         public Dictionary<GenericShip, ShipInfo> Ships;
         public VirtualBoardState State { get; protected set; }
@@ -270,7 +270,7 @@ namespace AI.Helpers.Navigation
             }
         }
 
-        public NewVirtualBoard()
+        public VirtualBoard()
         {
             Ships = new();
             State = VirtualBoardState.Inactive;
@@ -317,7 +317,7 @@ namespace AI.Helpers.Navigation
         /// Throws an exception if any other virtual board is active.
         /// </summary>
         /// <returns></returns>
-        public NewVirtualBoard<T> Activate()
+        public VirtualBoard<T> Activate()
         {
             if (VirtualBoardManager.ActiveVirtualBoard == this)
             {
@@ -332,7 +332,7 @@ namespace AI.Helpers.Navigation
         /// Returns null if another virtual board is active.
         /// </summary>
         /// <returns></returns>
-        public NewVirtualBoard<T>? TryActivate()
+        public VirtualBoard<T>? TryActivate()
         {
             if (VirtualBoardManager.ActiveVirtualBoard == null)
             {
@@ -348,7 +348,7 @@ namespace AI.Helpers.Navigation
         /// Throws an exception if any other virtual board is active.
         /// </summary>
         /// <returns></returns>
-        public NewVirtualBoard<T> ClaimActive()
+        public VirtualBoard<T> ClaimActive()
         {
             if (VirtualBoardManager.ActiveVirtualBoard == this)
             {
@@ -364,7 +364,7 @@ namespace AI.Helpers.Navigation
             return this;
         }
 
-        public NewVirtualBoard<T> Deactivate()
+        public VirtualBoard<T> Deactivate()
         {
             if (VirtualBoardManager.ActiveVirtualBoard != this)
             {
@@ -375,7 +375,7 @@ namespace AI.Helpers.Navigation
             return this;
         }
 
-        public NewVirtualBoard<T> ApplyVirtualPositions()
+        public VirtualBoard<T> ApplyVirtualPositions()
         {
             if (State == VirtualBoardState.Active)
             {
@@ -397,7 +397,7 @@ namespace AI.Helpers.Navigation
         /// </summary>
         /// <param name="newShipInitialiser"></param>
         /// <returns></returns>
-        public NewVirtualBoard<T> UpdateToReal(Func<GenericShip, T> newShipInitialiser)
+        public VirtualBoard<T> UpdateToReal(Func<GenericShip, T> newShipInitialiser)
         {
             if (VirtualBoardManager.ActiveVirtualBoard == VirtualBoardManager.RealBoard)
             {
@@ -434,16 +434,16 @@ namespace AI.Helpers.Navigation
 
         public class ShipInterface
         {
-            public NewVirtualBoard<T> CreatedBy;
+            public VirtualBoard<T> CreatedBy;
             public GenericShip Ship;
-            public NewVirtualBoard<T>.ShipInfo ShipInfo;
+            public VirtualBoard<T>.ShipInfo ShipInfo;
 
             public T ShipData
             {
                 get { return ShipInfo.OtherData; }
             }
 
-            public ShipInterface(GenericShip ship, NewVirtualBoard<T> createdBy)
+            public ShipInterface(GenericShip ship, VirtualBoard<T> createdBy)
             {
                 CreatedBy = createdBy;
                 Ship = ship;
@@ -574,7 +574,7 @@ namespace AI.Helpers.Navigation
             return Ships[ship].OtherData;
         }
 
-        public NewVirtualBoard<T> ReturnAllCollisions()
+        public VirtualBoard<T> ReturnAllCollisions()
         {
             AssertIsActive();
             foreach (KeyValuePair<GenericShip, ShipInfo> pair in Ships)

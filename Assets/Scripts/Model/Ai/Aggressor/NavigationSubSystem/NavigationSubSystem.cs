@@ -17,9 +17,9 @@ namespace AI.Aggressor
     {
         private static GenericPlayer? CurrentPlayer;
 
-        private static Dictionary<PlayerNo, NewVirtualBoard<AggressorVirtualShipInfo>> NewVirtualBoards = new();
+        private static Dictionary<PlayerNo, VirtualBoard<AggressorVirtualShipInfo>> NewVirtualBoards = new();
 
-        private static NewVirtualBoard<AggressorVirtualShipInfo> NewVirtualBoard
+        private static VirtualBoard<AggressorVirtualShipInfo> NewVirtualBoard
         {
             get { return NewVirtualBoards[CurrentPlayer?.PlayerNo ?? throw new Exception("AI.Aggressor.NavigationSubSystem : Attempt to get VirtualBoard without an active player.")]; }
             set { NewVirtualBoards[CurrentPlayer?.PlayerNo ?? throw new Exception("AI.Aggressor.NavigationSubSystem : Attempt to set VirtualBoard without an active player.")] = value; }
@@ -507,10 +507,10 @@ namespace AI.Aggressor
 
         private static void ConfigureVirtualBoards()
         {
-            if (Phases.RoundCounter == 1) NewVirtualBoards = new Dictionary<PlayerNo, NewVirtualBoard<AggressorVirtualShipInfo>>()
+            if (Phases.RoundCounter == 1) NewVirtualBoards = new Dictionary<PlayerNo, VirtualBoard<AggressorVirtualShipInfo>>()
             {
-                { PlayerNo.Player1, new NewVirtualBoard<AggressorVirtualShipInfo>() },
-                { PlayerNo.Player2, new NewVirtualBoard<AggressorVirtualShipInfo>() }
+                { PlayerNo.Player1, new VirtualBoard<AggressorVirtualShipInfo>() },
+                { PlayerNo.Player2, new VirtualBoard<AggressorVirtualShipInfo>() }
             };
 
             NewVirtualBoard.UpdateToReal(a => new(a));

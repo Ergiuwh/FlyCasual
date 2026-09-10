@@ -1,6 +1,5 @@
 #nullable enable
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,15 +38,15 @@ namespace AI.Helpers.Navigation
             return bestTurnManeuvers;
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver) where T : class, ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver) where T : class {
             yield return ApplyManeuverOnVirtualBoard(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver.ToString()));
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, string maneuver) where T : class, ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, string maneuver) where T : class {
             yield return ApplyManeuverOnVirtualBoard(virtualBoard, ship, ShipMovementScript.MovementFromString(maneuver));
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(NewVirtualBoard<T> virtualBoard, GenericShip ship, GenericMovement movement) where T : class, ICloneable {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, GenericMovement movement) where T : class {
             virtualBoard.AssertIsActive();
 
             MovementPrediction prediction = new(ship, movement);

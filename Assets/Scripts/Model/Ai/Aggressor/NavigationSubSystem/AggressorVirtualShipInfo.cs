@@ -1,6 +1,5 @@
 #nullable enable
 
-
 using System;
 using System.Collections.Generic;
 using AI.Helpers.Types;
@@ -8,7 +7,7 @@ using Ship;
 
 namespace AI.Aggressor
 {
-    public class AggressorVirtualShipInfo : ICloneable
+    public class AggressorVirtualShipInfo
     {
         public Maneuver? PlannedManeuver { get; set; }
         public Dictionary<string, NavigationResult>? NavigationResults { get; private set; }
