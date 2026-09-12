@@ -10,6 +10,7 @@ using GameModes;
 using GameCommands;
 using AI.Helpers.Types;
 using MainPhases;
+using Movement;
 
 namespace Players
 {
@@ -247,7 +248,7 @@ namespace Players
                     break;
             }
 
-            Dictionary<GenericAction, int> actionsPriority = new Dictionary<GenericAction, int>();
+            Dictionary<GenericAction, int> actionsPriority = new();
 
             foreach (var diceModification in Combat.DiceModifications.AvailableDiceModifications.Values)
             {
@@ -417,35 +418,16 @@ namespace Players
         /// <returns></returns>
         protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool> filter = null)
         {
-            return ChooseManeuverToExecuteFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList());
+            return ChooseManeuverToExecuteFrom(GetShipPossibleManeuvers(Selection.ThisShip).Where(filter).ToList());
         }
 
-        /// <summary>
-        /// Selects highest priority maneuver. Assumes highest priority is > 0.
-        /// </summary>
-        /// <param name="options"></param>
-        /// <param name="priorityFn"></param>
-        /// <returns></returns>
-        protected Maneuver ChooseManeuverFrom(List<Maneuver> options, Func<Maneuver, int> priorityFn)
+        private List<Maneuver> GetShipPossibleManeuvers(GenericShip ship)
         {
-            Maneuver bestManeuver = options[0];
-            int bestPriority = 0;
-            foreach (Maneuver maneuver in options)
-            {
-                int priority = priorityFn(maneuver);
-                if (priority > bestPriority)
-                {
-                    bestManeuver = maneuver;
-                    bestPriority = priority;
-                }
-            }
-
-            return bestManeuver;
-        }
-
-        protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, int> priorityFn, Func<Maneuver, bool> filter = null)
-        {
-            return ChooseManeuverFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList(), priorityFn);
+            Dictionary<string, MovementComplexity> maneuversStringFormat = ship.Maneuvers;
+            ship.CallReadyToGetManeuvers();
+            ship.OnGetManeuvers?.Invoke(maneuversStringFormat);
+            List<Maneuver> maneuvers = maneuversStringFormat.Select(a => new Maneuver(a.Key, a.Value)).ToList();
+            return maneuvers;
         }
 
         protected virtual Maneuver ChooseManeuverFrom(List<Maneuver> options)
@@ -455,7 +437,7 @@ namespace Players
 
         protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, bool> filter = null)
         {
-            return ChooseManeuverFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList());
+            return ChooseManeuverFrom(GetShipPossibleManeuvers(Selection.ThisShip).Where(filter).ToList());
         }
 
         public override void StartExtraAttack()

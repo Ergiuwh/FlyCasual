@@ -19,6 +19,14 @@ namespace AI.Helpers.Types
             Value = new ManeuverHolder(maneuverCode, ship);
         }
 
+        public Maneuver(string maneuverCode, MovementComplexity complexity)
+        {
+            Value = new ManeuverHolder(maneuverCode)
+            {
+                ColorComplexity = complexity
+            };
+        }
+
         public Maneuver(ManeuverHolder maneuverHolder)
         {
             Value = maneuverHolder;
