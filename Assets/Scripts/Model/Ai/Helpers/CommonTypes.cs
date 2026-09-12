@@ -1,6 +1,7 @@
 #nullable enable
 
 using Movement;
+using Ship;
 
 namespace AI.Helpers.Types
 {
@@ -10,7 +11,12 @@ namespace AI.Helpers.Types
         
         public Maneuver(string maneuverCode)
         {
-            Value = new(maneuverCode);
+            Value = new ManeuverHolder(maneuverCode);
+        }
+
+        public Maneuver(string maneuverCode, GenericShip ship)
+        {
+            Value = new ManeuverHolder(maneuverCode, ship);
         }
 
         public Maneuver(ManeuverHolder maneuverHolder)

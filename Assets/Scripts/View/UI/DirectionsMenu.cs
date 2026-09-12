@@ -21,6 +21,8 @@ public static class DirectionsMenu
 
     private static GameObject DirectionsWindow;
 
+    public static Func<string, bool> Filter;
+
     public static void Show(Action<string> doWithSelectedManeuver, Action callback, Func<string, bool> filter = null, bool isRegularPlanning = false)
     {
         UI.HideNextButton();
@@ -44,6 +46,8 @@ public static class DirectionsMenu
         {
             DirectionsMenu.Hide();
         }
+
+        Filter = filter;
 
         Phases.CurrentSubPhase.IsReadyForCommands = true;
 

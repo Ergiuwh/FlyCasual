@@ -291,15 +291,15 @@ public static class Selection {
 
     public static class Logger
     {
-        private static bool? doLogging;
-        public static bool DoLogging
-        {
-            get { return doLogging ?? false; }
-            set { doLogging = value; }
-        }
+        public static bool DoLogging = false;
+        public static bool ProvideStackTrace = false;
 
         public static void LogSetThisShip(GenericShip? ship) {
-            if (DoLogging)
+            if (DoLogging && ProvideStackTrace)
+            {
+                Console.Write($"SelectionLogger: ThisShip set to {ship?.ShipId}. Stack trace: {new System.Diagnostics.StackTrace()}");
+            }
+            else if (DoLogging)
             {
                 Console.Write($"SelectionLogger: ThisShip set to {ship?.ShipId}.");
             }

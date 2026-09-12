@@ -51,14 +51,14 @@ namespace AI.Helpers.Navigation
                 {
                     ActiveVirtualBoard = virtualBoard;
                     virtualBoard.RecoverActiveInternal();
+                    Logger.LogReactivateBoard(virtualBoard);
                 }
                 else
                 {
                     ActiveVirtualBoard = virtualBoard;
                     virtualBoard.ActivateInternal();
+                    Logger.LogActivateBoard(virtualBoard);
                 }
-
-                Logger.LogActivateBoard(virtualBoard);
             }
             else
             {
@@ -157,16 +157,16 @@ namespace AI.Helpers.Navigation
 
         public static class Logger
         {            
-            private static bool? doLogging;
-            public static bool DoLogging
-            {
-                get { return doLogging ?? false; }
-                set { doLogging = value; }
-            }
+            public static bool DoLogging = false;
+            public static bool ProvideStackTrace = false;
 
             public static void LogActivateBoard(IVirtualBoard virtualBoard)
             {
-                if (DoLogging)
+                if (DoLogging && ProvideStackTrace)
+                {
+                    Console.Write($"VirtualBoardLogger: Activate {virtualBoard}. Stack trace: {new System.Diagnostics.StackTrace()}");
+                }
+                else if (DoLogging)
                 {
                     Console.Write($"VirtualBoardLogger: Activate {virtualBoard}.");
                 }
@@ -174,7 +174,11 @@ namespace AI.Helpers.Navigation
 
             public static void LogDeactivateBoard(IVirtualBoard virtualBoard)
             {
-                if (DoLogging)
+                if (DoLogging && ProvideStackTrace)
+                {
+                    Console.Write($"VirtualBoardLogger: Deactivate {virtualBoard}. Stack trace: {new System.Diagnostics.StackTrace()}");
+                }
+                else if (DoLogging)
                 {
                     Console.Write($"VirtualBoardLogger: Deactivate {virtualBoard}.");
                 }
@@ -182,7 +186,11 @@ namespace AI.Helpers.Navigation
 
             public static void LogReactivateBoard(IVirtualBoard virtualBoard)
             {
-                if (DoLogging)
+                if (DoLogging && ProvideStackTrace)
+                {
+                    Console.Write($"VirtualBoardLogger: Reactivate {virtualBoard}. Stack trace: {new System.Diagnostics.StackTrace()}");
+                }
+                else if (DoLogging)
                 {
                     Console.Write($"VirtualBoardLogger: Reactivate {virtualBoard}.");
                 }
@@ -190,7 +198,11 @@ namespace AI.Helpers.Navigation
 
             public static void LogUpdateRealBoard()
             {
-                if (DoLogging)
+                if (DoLogging && ProvideStackTrace)
+                {
+                    Console.Write($"VirtualBoardLogger: Update real board. Stack trace: {new System.Diagnostics.StackTrace()}");
+                }
+                else if (DoLogging)
                 {
                     Console.Write($"VirtualBoardLogger: Update real board.");
                 }
@@ -566,7 +578,13 @@ namespace AI.Helpers.Navigation
             return new ShotInfo(attacker, defender, weapon);
         }
 
-        public T GetShipData(GenericShip ship)
+        public T? TryGetShipData(GenericShip ship)
+        {
+            bool success = Ships.TryGetValue(ship, out ShipInfo info);
+            return success ? info.OtherData : null;
+        }
+
+        public T GetShipDataOrError(GenericShip ship)
         {
             return Ships[ship].OtherData;
         }

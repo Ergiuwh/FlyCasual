@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using ActionsList;
+using AI.Helpers.Types;
 using GameModes;
 using MainPhases;
 using Ship;
@@ -75,34 +76,16 @@ namespace Players
 
         public override void AskAssignManeuver()
         {
+            base.AskAssignManeuver();
             if (Phases.CurrentPhase is PlanningPhase) {
-                AssignManeuverToThisShip();
                 if (DebugManager.DebugStraightToCombat)
                 {
                     AssignManeuversRecursive();
                 }
                 else
                 {
-                    GameManagerScript.Wait(WaitAfterAssigningDial, delegate { Selection.DeselectThisShip(); AssignManeuversRecursive(); });
+                    GameManagerScript.Wait(WaitAfterAssigningDial, delegate { AssignManeuversRecursive(); });
                 }
-            }
-            else
-            {
-                AssignManeuverToThisShip();
-            }
-        }
-
-        private void AssignManeuverToThisShip()
-        {
-            if (DebugManager.DebugStraightToCombat)
-            {
-                ShipMovementScript.SendAssignManeuverCommand("2.F.S");
-            }
-            else
-            {
-                if (Selection.ThisShip is null ) { throw new Exception(); }
-                AI.Aggressor.NavigationSubSystem.EnsureShipHasPlannedManeuver(Selection.ThisShip);
-                AI.Aggressor.NavigationSubSystem.AssignPlannedManeuver();
             }
         }
 
@@ -204,6 +187,22 @@ namespace Players
         {
             return Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).Ships.Values
                 .FirstOrDefault(n => !n.IsManeuverPerformed);
+        }
+
+        protected override Maneuver ChooseManeuverFrom(List<Maneuver> options)
+        {
+            return AI.Aggressor.NavigationSubSystem.SelectManeuverFrom(
+                options,
+                Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.")
+                );
+        }
+
+        protected override Maneuver ChooseManeuverToExecuteFrom(List<Maneuver> options)
+        {
+            return AI.Aggressor.NavigationSubSystem.SelectManeuverToExecuteFrom(
+                options,
+                Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.")
+                );
         }
     }
 }

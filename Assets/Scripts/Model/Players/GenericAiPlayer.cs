@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -9,6 +8,8 @@ using BoardTools;
 using SubPhases;
 using GameModes;
 using GameCommands;
+using AI.Helpers.Types;
+using MainPhases;
 
 namespace Players
 {
@@ -316,18 +317,145 @@ namespace Players
             GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
         }
 
+        public override void AskAssignManeuver()
+        {
+            base.AskAssignManeuver();
+
+            if (DebugManager.DebugStraightToCombat)
+            {
+                ShipMovementScript.SendAssignManeuverCommand("2.F.S");
+            }
+            else
+            {
+                Func<string, bool> stringFilter = DirectionsMenu.Filter;
+                
+                Maneuver maneuver;
+
+                if (stringFilter == null)
+                {
+                    maneuver = GetManeuverDecisionFnFromFilter()(_ => true);
+                }
+                else
+                {
+                    maneuver = GetManeuverDecisionFnFromFilter()(ManeuverFilterFromStringFilter(stringFilter));
+                }
+
+                ShipMovementScript.SendAssignManeuverCommand(maneuver.ToString());
+            }
+        }
+
         public override void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
         {
-            DirectionsMenu.Show(doWithManeuverString, callback, filter);
+            base.ChangeManeuver(doWithManeuverString, callback, filter);
 
-            doWithManeuverString(Selection.ThisShip.AssignedManeuver.ToString());
+            DirectionsMenu.Show(doWithManeuverString, callback, filter);
         }
 
         public override void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
         {
-            doWithManeuverString(Selection.ThisShip.AssignedManeuver.ToString());
+            base.SelectManeuver(doWithManeuverString, callback, filter);
 
-            callback();
+            DirectionsMenu.Show(doWithManeuverString, callback, filter);
+        }
+
+        protected virtual Func<Func<Maneuver, bool>, Maneuver> GetManeuverDecisionFnFromFilter()
+        {
+            if (Phases.CurrentPhase is PlanningPhase)
+            {
+                return ChooseManeuverFromFilter;
+            }
+            else
+            {
+                return ChooseManeuverToExecuteFromFilter;
+            }
+        }
+
+        protected virtual Func<List<Maneuver>, Maneuver> GetManeuverDecisionFn()
+        {
+            if (Phases.CurrentPhase is PlanningPhase)
+            {
+                return ChooseManeuverFrom;
+            }
+            else
+            {
+                return ChooseManeuverToExecuteFrom;
+            }
+        }
+
+        private Func<Maneuver, bool> ManeuverFilterFromStringFilter(Func<string, bool> filter)
+        {
+            return new ManeuverFilterFromStringFilterStruct(filter).Check;
+        }
+
+        private readonly struct ManeuverFilterFromStringFilterStruct
+        {
+            readonly Func<string, bool> filter;
+            public ManeuverFilterFromStringFilterStruct(Func<string, bool> filter)
+            {
+                this.filter = filter;
+            }
+            public readonly bool Check(Maneuver maneuver)
+            {
+                return filter(maneuver.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Use when the maneuver is about to be executed (e.g. SLAM, Countess Ryad)
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        protected virtual Maneuver ChooseManeuverToExecuteFrom(List<Maneuver> options)
+        {
+            return options[0];
+        }
+
+        /// <summary>
+        /// Use when the maneuver is about to be executed (e.g. SLAM, Countess Ryad)
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool> filter = null)
+        {
+            return ChooseManeuverToExecuteFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList());
+        }
+
+        /// <summary>
+        /// Selects highest priority maneuver. Assumes highest priority is > 0.
+        /// </summary>
+        /// <param name="options"></param>
+        /// <param name="priorityFn"></param>
+        /// <returns></returns>
+        protected Maneuver ChooseManeuverFrom(List<Maneuver> options, Func<Maneuver, int> priorityFn)
+        {
+            Maneuver bestManeuver = options[0];
+            int bestPriority = 0;
+            foreach (Maneuver maneuver in options)
+            {
+                int priority = priorityFn(maneuver);
+                if (priority > bestPriority)
+                {
+                    bestManeuver = maneuver;
+                    bestPriority = priority;
+                }
+            }
+
+            return bestManeuver;
+        }
+
+        protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, int> priorityFn, Func<Maneuver, bool> filter = null)
+        {
+            return ChooseManeuverFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList(), priorityFn);
+        }
+
+        protected virtual Maneuver ChooseManeuverFrom(List<Maneuver> options)
+        {
+            return options[0];
+        }
+
+        protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, bool> filter = null)
+        {
+            return ChooseManeuverFrom(Selection.ThisShip.Maneuvers.Select(a => new Maneuver(a.Key, Selection.ThisShip)).Where(filter).ToList());
         }
 
         public override void StartExtraAttack()
