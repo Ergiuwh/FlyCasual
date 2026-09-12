@@ -11,7 +11,7 @@ namespace CommandsList
         {
             Keyword = "log";
             Description = "Manipulate various logging features\n"
-                        + "log (src:<source>|source:<source>) [enable/disable/on/off]\n"
+                        + "log (src:<source>|source:<source>) [enable/disable/on/off] [stacktrace:<on/off>]\n"
                         + "where source: (virtualboardmanager, virtualbm, vbm), selection";
 
             Console.AddAvailableCommand(this);
@@ -64,15 +64,34 @@ namespace CommandsList
                 return;
             }
 
+            bool hasStackTraceString = parameters.TryGetValue("stacktrace", out string stackTraceString);
+            bool? stacktraceValue = null;
+            if (hasStackTraceString)
+            {
+                if (stackTraceString == "on")
+                {
+                    stacktraceValue = true;
+                }
+                else if (stackTraceString == "off")
+                {
+                    stacktraceValue = false;
+                }
+                else
+                {
+                    ShowHelp();
+                    return;
+                }
+            }
+
             switch (sourceString)
             {
                 case "virtualboardmanager":
                 case "virtualbm":
                 case "vbm":
-                    SetVirtualBoardManagerLogger(setOnTo);
+                    SetVirtualBoardManagerLogger(setOnTo, stacktraceValue);
                     break;
                 case "selection":
-                    SetSelectionLogger(setOnTo);
+                    SetSelectionLogger(setOnTo, stacktraceValue);
                     break;
                 default:
                     ShowHelp();
@@ -80,10 +99,16 @@ namespace CommandsList
             }
         }
         
-        private void SetVirtualBoardManagerLogger(bool? setOnTo)
+        private void SetVirtualBoardManagerLogger(bool? setOnTo, bool? setStackTraceTo)
         {
-            if (setOnTo != null) {
+            if (setOnTo != null)
+            {
                 VirtualBoardManager.Logger.DoLogging = (bool)setOnTo;
+            }
+            
+            if (setStackTraceTo != null)
+            {
+                VirtualBoardManager.Logger.ProvideStackTrace = (bool)setStackTraceTo;
             }
 
             string setOnToString;
@@ -92,23 +117,43 @@ namespace CommandsList
                 case null:
                     setOnToString = "";
                     break;
-                case false:
-                    setOnToString = "off";
-                    break;
                 case true:
                     setOnToString = "on";
                     break;
+                case false:
+                    setOnToString = "off";
+                    break;
             }
 
-            Console.Write($"log src:virtualboardmanager {setOnToString}");
+            string setstackTraceToString;
+            switch (setStackTraceTo)
+            {
+                case null:
+                    setstackTraceToString = "";
+                    break;
+                case true:
+                    setstackTraceToString = "stacktrace:on";
+                    break;
+                case false:
+                    setstackTraceToString = "stacktrace:off";
+                    break;
+            }
+
+            Console.Write($"log src:virtualboardmanager {setOnToString}, {setstackTraceToString}");
         }
 
-        private void SetSelectionLogger(bool? setOnTo)
+        private void SetSelectionLogger(bool? setOnTo, bool? setStackTraceTo)
         {
-            if (setOnTo != null) {
+            if (setOnTo != null)
+            {
                 Selection.Logger.DoLogging = (bool)setOnTo;
             }
 
+            if (setStackTraceTo != null)
+            {
+                Selection.Logger.ProvideStackTrace = (bool)setStackTraceTo;
+            }
+
             string setOnToString;
             switch (setOnTo)
             {
@@ -123,7 +168,21 @@ namespace CommandsList
                     break;
             }
 
-            Console.Write($"log src:selection {setOnToString}");
+            string setstackTraceToString;
+            switch (setStackTraceTo)
+            {
+                case null:
+                    setstackTraceToString = "";
+                    break;
+                case true:
+                    setstackTraceToString = "stacktrace:on";
+                    break;
+                case false:
+                    setstackTraceToString = "stacktrace:off";
+                    break;
+            }
+
+            Console.Write($"log src:selection {setOnToString} {setstackTraceToString}");
         }
     }
 }
