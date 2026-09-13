@@ -1,9 +1,9 @@
 ﻿#nullable enable
 
+using Ship;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Ship;
 
 public static class Selection {
 

@@ -1,7 +1,7 @@
 #nullable enable
 
-using System.Collections.Generic;
 using AI.Helpers.Navigation;
+using System.Collections.Generic;
 
 namespace CommandsList
 {

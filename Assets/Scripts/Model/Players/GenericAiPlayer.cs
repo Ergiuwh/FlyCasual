@@ -1,16 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
-using System.Linq;
-using Ship;
-using ActionsList;
-using BoardTools;
-using SubPhases;
-using GameModes;
-using GameCommands;
+﻿using ActionsList;
 using AI.Helpers.Types;
+using BoardTools;
+using GameCommands;
+using GameModes;
 using MainPhases;
 using Movement;
+using Ship;
+using SubPhases;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 namespace Players
 {
@@ -423,7 +423,7 @@ namespace Players
 
         private List<Maneuver> GetShipPossibleManeuvers(GenericShip ship)
         {
-            Dictionary<string, MovementComplexity> maneuversStringFormat = ship.Maneuvers;
+            Dictionary<string, MovementComplexity> maneuversStringFormat = new(ship.Maneuvers);
             ship.CallReadyToGetManeuvers();
             ship.OnGetManeuvers?.Invoke(maneuversStringFormat);
             List<Maneuver> maneuvers = maneuversStringFormat.Select(a => new Maneuver(a.Key, a.Value)).ToList();

@@ -1,9 +1,9 @@
 #nullable enable
 
-using System;
-using System.Collections.Generic;
 using BoardTools;
 using Ship;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace AI.Helpers.Navigation
