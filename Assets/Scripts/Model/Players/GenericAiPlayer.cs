@@ -1,4 +1,6 @@
-﻿using ActionsList;
+﻿#nullable enable annotations // enable warnings once Phases is nullable aware
+
+using ActionsList;
 using AI.Helpers.Types;
 using BoardTools;
 using GameCommands;
@@ -96,6 +98,11 @@ namespace Players
 
         protected void PerformManeuverOfShip(GenericShip ship)
         {
+            if (Selection.ThisShip == null)
+            {
+                throw new Exception("Selection.ThisShip null in unexpected place.");
+            }
+
             ship.IsManeuverPerformed = true;
             GameCommand command = ShipMovementScript.GenerateActivateAndMoveCommand(Selection.ThisShip.ShipId);
             GameMode.CurrentGameMode.ExecuteCommand(command);
@@ -106,8 +113,8 @@ namespace Players
         public override void PerformAttack()
         {
             base.PerformAttack();
-
-            GenericShip attacker = GetShipThatCanAttack();
+            
+            GenericShip? attacker = GetShipThatCanAttack();
 
             if (attacker != null)
             {
@@ -125,7 +132,7 @@ namespace Players
         {
             if (Selection.ThisShip != null)
             {
-                GenericShip targetForAttack = SelectTargetForAttack();
+                GenericShip? targetForAttack = SelectTargetForAttack();
 
                 Selection.ThisShip.IsAttackPerformed = true;
 
@@ -145,14 +152,14 @@ namespace Players
             }
         }
 
-        protected virtual GenericShip SelectTargetForAttack()
+        protected virtual GenericShip? SelectTargetForAttack()
         {
             if (DebugManager.DebugNoCombat) return null;
 
             return AI.HotAC.TargetForAttackSelector.SelectTargetAndWeapon(Selection.ThisShip);
         }
 
-        private static GenericShip GetShipThatCanAttack()
+        private static GenericShip? GetShipThatCanAttack()
         {
             foreach (var shipHolder in Roster.GetPlayer(Phases.CurrentPhasePlayer).Ships)
             {
@@ -168,10 +175,10 @@ namespace Players
             return null;
         }
 
-        public GenericShip FindNearestEnemyShip(GenericShip thisShip, bool ignoreCollided = false, bool inArcAndRange = false)
+        public GenericShip? FindNearestEnemyShip(GenericShip thisShip, bool ignoreCollided = false, bool inArcAndRange = false)
         {
             Dictionary<GenericShip, float> results = GetEnemyShipsAndDistance(thisShip, ignoreCollided, inArcAndRange);
-            GenericShip result = null;
+            GenericShip? result = null;
             if (results.Count != 0)
             {
                 result = results.OrderBy(n => n.Value).First().Key;
@@ -183,7 +190,7 @@ namespace Players
         // TODO: Remove, used in AI/HotAC/TargetForAttackSelector
         public Dictionary<GenericShip, float> GetEnemyShipsAndDistance(GenericShip thisShip, bool ignoreCollided = false, bool inArcAndRange = false)
         {
-            Dictionary<GenericShip, float> results = new Dictionary<GenericShip, float>();
+            Dictionary<GenericShip, float> results = new();
 
             foreach (var shipHolder in Roster.GetPlayer(Roster.AnotherPlayer(thisShip.Owner.PlayerNo)).Ships)
             {
@@ -210,8 +217,8 @@ namespace Players
 
                     if (inArcAndRange)
                     {
-                        BoardTools.DistanceInfo distanceInfo = new BoardTools.DistanceInfo(thisShip, shipHolder.Value);
-                        if ((distanceInfo.Range > 3))
+                        BoardTools.DistanceInfo distanceInfo = new(thisShip, shipHolder.Value);
+                        if (distanceInfo.Range > 3)
                         {
                             continue;
                         }
@@ -249,6 +256,11 @@ namespace Players
             }
 
             Dictionary<GenericAction, int> actionsPriority = new();
+
+            if (Selection.ActiveShip == null)
+            {
+                throw new Exception("Selection.ActiveShip null in unexpected place.");
+            }
 
             foreach (var diceModification in Combat.DiceModifications.AvailableDiceModifications.Values)
             {
@@ -345,14 +357,14 @@ namespace Players
             }
         }
 
-        public override void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
+        public override void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool>? filter = null)
         {
             base.ChangeManeuver(doWithManeuverString, callback, filter);
 
             DirectionsMenu.Show(doWithManeuverString, callback, filter);
         }
 
-        public override void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
+        public override void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool>? filter = null)
         {
             base.SelectManeuver(doWithManeuverString, callback, filter);
 
@@ -416,8 +428,13 @@ namespace Players
         /// </summary>
         /// <param name="filter"></param>
         /// <returns></returns>
-        protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool> filter = null)
+        protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool>? filter = null)
         {
+            if (Selection.ThisShip == null)
+            {
+                throw new Exception("Selection.ThisShip null in unexpected place.");
+            }
+            
             return ChooseManeuverToExecuteFrom(GetShipPossibleManeuvers(Selection.ThisShip).Where(filter).ToList());
         }
 
@@ -435,17 +452,27 @@ namespace Players
             return options[0];
         }
 
-        protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, bool> filter = null)
+        protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, bool>? filter = null)
         {
+            if (Selection.ThisShip == null)
+            {
+                throw new Exception("Selection.ThisShip null in unexpected place.");
+            }
+
             return ChooseManeuverFrom(GetShipPossibleManeuvers(Selection.ThisShip).Where(filter).ToList());
         }
 
         public override void StartExtraAttack()
         {
-            GenericShip targetForAttack = SelectTargetForAttack();
+            GenericShip? targetForAttack = SelectTargetForAttack();
 
             if (targetForAttack != null)
             {
+                if (Selection.ThisShip == null)
+                {
+                    throw new Exception("Selection.ThisShip null in unexpected place.");
+                }
+
                 Selection.ThisShip.IsAttackPerformed = true;
 
                 Selection.AnotherShip = targetForAttack;
@@ -554,10 +581,20 @@ namespace Players
             }
             else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
+                if (Selection.ThisShip == null)
+                {
+                    throw new Exception("Selection.ThisShip null in unexpected place.");
+                }
+
                 PerformActionFromList(Selection.ThisShip.GetAvailableActions());
             }
             else if (Phases.CurrentSubPhase is FreeActionDecisonSubPhase)
             {
+                if (Selection.ThisShip == null)
+                {
+                    throw new Exception("Selection.ThisShip null in unexpected place.");
+                }
+
                 PerformActionFromList(Selection.ThisShip.GetAvailableFreeActions());
             }
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();

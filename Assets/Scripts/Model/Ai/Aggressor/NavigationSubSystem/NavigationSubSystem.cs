@@ -49,6 +49,8 @@ namespace AI.Aggressor
                 throw new Exception("AI.Aggressor.NavigationSubSystem : StartCalculations called when CurrentPlayer is null.");
             }
 
+            DebugManager.AiPlanningLog.OpenNewGroup("Planning Phase");
+
             VirtualBoard.ClaimActive();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
             VirtualBoard.ApplyVirtualPositions();
@@ -68,6 +70,7 @@ namespace AI.Aggressor
             VirtualBoardManager.ActivateRealBoard();
             ShowCalculationsEnd();
 
+            DebugManager.AiPlanningLog.CloseGroup();
 
             callback();
         }
@@ -87,9 +90,11 @@ namespace AI.Aggressor
 
         private static void PredictSimpleFinalPositionOfEnemyShip(GenericShip ship)
         {
+            DebugManager.AiPlanningLog.OpenNewGroup($"Predict Enemy Ship {ship.ShipId}");
+
             Selection.ThisShip = ship;
 
-            GenericMovement savedMovement = ship.AssignedManeuver;
+            GenericMovement? savedMovement = ship.AssignedManeuver;
 
             // Decide what maneuvers to use as temporary
             string temporyManeuver = (ship.State.IsIonized) ? "1.F.S" : "2.F.S";
@@ -106,7 +111,7 @@ namespace AI.Aggressor
             movement.Initialize();
             movement.IsSimple = true;
 
-            MovementPrediction prediction = new MovementPrediction(ship, movement);
+            MovementPrediction prediction = new(ship, movement);
             prediction.CalculateOnlyFinalPositionIgnoringCollisions();
 
             if (isTemporaryManeuverAdded)
@@ -122,6 +127,9 @@ namespace AI.Aggressor
             {
                 ship.ClearAssignedManeuver();
             }
+
+            DebugManager.AiPlanningLog.Add($"Predicted maneuver of {temporyManeuver}.");
+            DebugManager.AiPlanningLog.CloseGroup();
 
             VirtualBoard.GetShipInterface(ship).ShipData.SetPredictedPosition(prediction.FinalPositionInfo).SetPlannedManeuver(new(temporyManeuver));
         }
@@ -142,6 +150,8 @@ namespace AI.Aggressor
 
         private static IEnumerator PredictFinalPosionsOfOwnShip(GenericShip ship)
         {
+            DebugManager.AiPlanningLog.OpenNewGroup($"Predict Own Ship {ship.ShipId}");
+
             Selection.ChangeActiveShip(ship);
             VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
 
@@ -153,7 +163,7 @@ namespace AI.Aggressor
                 movement.Initialize();
                 movement.IsSimple = true;
 
-                MovementPrediction prediction = new MovementPrediction(ship, movement);
+                MovementPrediction prediction = new(ship, movement);
                 prediction.CalculateOnlyFinalPositionIgnoringCollisions();
 
                 VirtualBoard.GetShipInterface(ship)
@@ -162,7 +172,7 @@ namespace AI.Aggressor
 
                 ProcessHeavyGeometryCalculations(ship, out float minDistanceToEnemyShip, out float minDistanceToNearestEnemyInShotRange, out float minAngle, out int enemiesInShotRange);
 
-                NavigationResult result = new NavigationResult()
+                NavigationResult result = new()
                 {
                     movement = prediction.CurrentMovement,
                     distanceToNearestEnemy = minDistanceToEnemyShip,
@@ -182,6 +192,19 @@ namespace AI.Aggressor
 
                 yield return true;
             }
+
+            if (DebugManager.AiPlanningLog.DoLogging)
+            {
+                DebugManager.AiPlanningLog.OpenNewGroup("Maneuvers scored as");
+                foreach (KeyValuePair<string, NavigationResult> item in navigationResults.OrderBy(pair => -pair.Value.Priority))
+                {
+                    DebugManager.AiPlanningLog.Add($"{item.Key}  {item.Value}");
+                }
+
+                DebugManager.AiPlanningLog.CloseGroup();
+            }
+
+            DebugManager.AiPlanningLog.CloseGroup();
 
             ship.ClearAssignedManeuver();
             VirtualBoard.GetShipDataOrError(ship).UpdateNavigationResults(navigationResults);

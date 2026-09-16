@@ -37,6 +37,7 @@ public class GameManagerScript : MonoBehaviour {
         Combat.Initialize();
         Triggers.Initialize();
         yield return DamageDecks.Initialize();
+        DebugManager.Initialize();
 
         GameMode.CurrentGameMode.StartBattle();
     }

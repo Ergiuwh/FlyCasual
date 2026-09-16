@@ -1,7 +1,7 @@
 ﻿using Players;
 using UnityEngine;
 
-public static class DebugManager
+public static partial class DebugManager
 {
     public static bool ReleaseVersion = true;
 
@@ -87,6 +87,12 @@ public static class DebugManager
             return debugDamage;
         }
         set { debugDamage = value; }
+    }
+
+    public static void Initialize()
+    {
+        AiPlanningLog.Initialize();
+
     }
 
 }

@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Ship;
-using ActionsList;
-using GameModes;
-using SubPhases;
-using GameCommands;
+﻿#nullable enable annotations // enable warnings once Phases is nullable aware
+
 using Obstacles;
-using System.Linq;
 using Remote;
+using Ship;
+using SubPhases;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 public enum Faction
 {
@@ -43,21 +41,21 @@ namespace Players
     public partial class GenericPlayer
     {
         public PlayerType PlayerType;
-        public string Name;
+        public string? Name;
         public PlayerNo PlayerNo;
         public bool UsesHotacAiRules;
         public int SquadCost;
 
-        public string NickName;
-        public string Title;
-        public string Avatar;
+        public string? NickName;
+        public string? Title;
+        public string? Avatar;
 
-        public GameObject PlayerInfoPanel;
+        public GameObject? PlayerInfoPanel;
 
-        public Dictionary<string, GenericShip> Units = new Dictionary<string, GenericShip>();
-        public Dictionary<string, GenericShip> Ships { get { return Units.Where(n => !(n.Value is GenericRemote)).ToDictionary(n => n.Key, m => m.Value); } }
+        public Dictionary<string, GenericShip> Units = new();
+        public Dictionary<string, GenericShip> Ships { get { return Units.Where(n => n.Value is not GenericRemote).ToDictionary(n => n.Key, m => m.Value); } }
         public Dictionary<string, GenericShip> Remotes { get { return Units.Where(n => n.Value is GenericRemote).ToDictionary(n => n.Key, m => m.Value); } }
-        public List<GenericObstacle> ChosenObstacles = new List<GenericObstacle>();
+        public List<GenericObstacle> ChosenObstacles = new();
         public Dictionary<string, GenericShip> EnemyShips { get { return AnotherPlayer.Ships; } }
         public GenericPlayer AnotherPlayer { get { return Roster.GetPlayer(Roster.AnotherPlayer(PlayerNo)); } }
         public int Id { get { return (PlayerNo == PlayerNo.Player1) ? 1 : 2; } }
@@ -121,6 +119,11 @@ namespace Players
 
         public virtual void AfterShipMovementPrediction()
         {
+            if (Selection.ThisShip == null)
+            {
+                throw new Exception("Selection.ThisShip null in unexpected place.");
+            }
+
             Selection.ThisShip.AssignedManeuver.LaunchShipMovement();
         }
 
@@ -171,9 +174,9 @@ namespace Players
             return ship.Owner.PlayerNo != Phases.CurrentSubPhase.RequiredPlayer;
         }
 
-        public virtual void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null) { }
+        public virtual void ChangeManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool>? filter = null) { }
 
-        public virtual void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool> filter = null)
+        public virtual void SelectManeuver(Action<string> doWithManeuverString, Action callback, Func<string, bool>? filter = null)
         {
             Phases.CurrentSubPhase.IsReadyForCommands = true;
         }
