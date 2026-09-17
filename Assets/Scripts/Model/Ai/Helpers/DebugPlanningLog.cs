@@ -116,6 +116,14 @@ public static partial class DebugManager
             }
         }
 
+        public static int RoundsCurrentlyStored
+        {
+            get
+            {
+                return Log.Count;
+            }
+        }
+
         private static void StartNewRound(string title)
         {
             if (RoundsStoredCount == 0)
@@ -173,7 +181,7 @@ public static partial class DebugManager
 
             if (group.Children == null)
             {
-                return group.Name;
+                return "";
             }
 
             string result = "";
@@ -186,13 +194,21 @@ public static partial class DebugManager
 
             for (int i = 0; i < group.Children.Count; i++)
             {
-                result += FormatGroup(group.Children[i], depth + 1);
-                if (i != group.Children.Count - 1)
+                if (group.Children[i].Children == null)
                 {
-                    result += "\\";
+                    if (i != group.Children.Count - 1)
+                    {
+                        result += $"{group.Children[i].Name}\\\n";
+                    }
+                    else
+                    {
+                        result += $"{group.Children[i].Name}\n";
+                    }
                 }
-
-                result += "\n";
+                else
+                {
+                    result += FormatGroup(group.Children[i], depth + 1);
+                }
             }
 
             return result;
@@ -201,10 +217,20 @@ public static partial class DebugManager
 
         public static string FormatAllStoredRounds()
         {
-            string result = "";
-            foreach (RecursiveStringList item in Log)
+            return FormatLastNRounds(Log.Count);
+        }
+
+        public static string FormatLastNRounds(int count)
+        {
+            if (count > Log.Count)
             {
-                result += FormatGroup(item.HeadNode, 0);
+                count = Log.Count;
+            }
+
+            string result = "";
+            for (int i = Log.Count - count; i < Log.Count; i++)
+            {
+                result += FormatGroup(Log[i].HeadNode, 0);
             }
 
             return result;

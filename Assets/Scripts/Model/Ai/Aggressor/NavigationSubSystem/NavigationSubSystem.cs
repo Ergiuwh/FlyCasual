@@ -57,14 +57,18 @@ namespace AI.Aggressor
 
             ShowCalculationsStart();
 
+            DebugManager.AiPlanningLog.OpenNewGroup("Predict ship positions");
             SwitchEnemyShipsToSimpleVirtualPositions();
             yield return PredictAllFinalPositionsOfOwnShips();
+            DebugManager.AiPlanningLog.CloseGroup();
 
             VirtualBoard.UpdateToReal(NewShipInitialiser);
 
             List<GenericShip> orderOfActivation = GenerateOrderOfActivation();
 
+            DebugManager.AiPlanningLog.OpenNewGroup("Find best maneuvers");
             yield return FindBestManeuversForShips(orderOfActivation);
+            DebugManager.AiPlanningLog.CloseGroup();
 
             VirtualBoard.Deactivate();
             VirtualBoardManager.ActivateRealBoard();
@@ -249,7 +253,7 @@ namespace AI.Aggressor
         {
             if (CurrentPlayer == null)
             {
-                throw new Exception("AI.Aggressor.NavigationSubSystem : CurrentPlayer null in unexpected place.");
+                throw new Exception("AI.Aggressor.NavigationSubSystem: CurrentPlayer null in unexpected place.");
             }
 
             while (orderOfActivation.Count > 0)
@@ -282,16 +286,21 @@ namespace AI.Aggressor
                 throw new Exception("AI.Aggressor.NavigationSubSystem : FindBestManeuver : NavigationResults of the input ship is null / the ship is not tracked in VirtualBoard.");
             }
 
+            DebugManager.AiPlanningLog.OpenNewGroup($"Find best maneuver for {ship.ShipId}");
+
             Selection.ChangeActiveShip(ship);
 
-            int bestPriority = int.MinValue;
+            int bestPriority = VirtualBoard.GetShipDataOrError(ship).NavigationResults.Max(n => n.Value.Priority);
+            DebugManager.AiPlanningLog.Add($"Best predicted priority is {bestPriority}");
+
             KeyValuePair<string, NavigationResult> maneuverToCheck = new();
+
+            DebugManager.AiPlanningLog.OpenNewGroup("Maneuvers scored as");
 
             do
             {
                 VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
 
-                bestPriority = VirtualBoard.GetShipDataOrError(ship).NavigationResults.Max(n => n.Value.Priority);
                 maneuverToCheck = VirtualBoard.GetShipDataOrError(ship).NavigationResults.First(n => n.Value.Priority == bestPriority);
 
                 GenericMovement movement = ShipMovementScript.MovementFromString(maneuverToCheck.Key);
@@ -353,13 +362,21 @@ namespace AI.Aggressor
                     VirtualBoard.GetShipInterface(enemyShip).UpdateToRealPosition();
                 }
 
+                DebugManager.AiPlanningLog.Add($"{maneuverToCheck.Key}  {maneuverToCheck.Value}");
+
             } while (maneuverToCheck.Value.Priority != bestPriority);
+
+            DebugManager.AiPlanningLog.CloseGroup();
 
             VirtualBoard.GetShipDataOrError(ship)
                 .SetPlannedManeuver(new(maneuverToCheck.Key))
                 .SetOrderToActivate(++OrderOfActivation);
+
             ship.ClearAssignedManeuver();
+
             Selection.DeselectThisShip();
+
+            DebugManager.AiPlanningLog.CloseGroup();
         }
 
         private static void ProcessHeavyGeometryCalculations(GenericShip ship, out float minDistanceToEnemyShip, out float minDistanceToNearestEnemyInShotRange, out float minAngle, out int enemiesInShotRange)

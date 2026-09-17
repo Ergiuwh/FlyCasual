@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace CommandsList
 {
@@ -11,85 +10,79 @@ namespace CommandsList
         {
             Keyword = "debugai";
             Description = "Utilities and settings for debuging AIs.\n" 
-                        + "debugai showplanning:<(on/true/enable)/(off/false/disable)>\n"
-                        + "debugai printplanninglog[:copy]";
+                        + "debugai set movementshowplanning:<bool_input>\n"
+                        + "debugai copyplanninglog [count:<number>]\n"
+                        + "where bool_input: (on/true/enable), (off/false/disable)";
 
             Console.AddAvailableCommand(this);
         }
 
         public override void Execute(Dictionary<string, string> parameters)
         {
-            bool setDebugMovementShowPlanningTo = DebugManager.DebugMovementShowPlanning;
-            bool displaySetDebugMovementShowPlanningTo = false;
-            bool printPlanning = false;
-            bool copyPlanningLog = false;
-
-            if (parameters.TryGetValue("showplanning", out string showPlanningValue))
+            bool hasSet = parameters.ContainsKey("set");
+            bool hasCopyPlanningLog = parameters.ContainsKey("copyplanninglog");
+            if (hasSet && hasCopyPlanningLog)
             {
-                switch (showPlanningValue)
-                {
-                    case "on":
-                    case "true":
-                    case "enable":
-                        setDebugMovementShowPlanningTo = true;
-                        displaySetDebugMovementShowPlanningTo = true;
-                        break;
-                    case "off":
-                    case "false":
-                    case "disable":
-                        setDebugMovementShowPlanningTo = false;
-                        displaySetDebugMovementShowPlanningTo = true;
-                        break;
-                    default:
-                        ShowHelp();
-                        return;
-                }
+                ShowHelp();
+                return;
             }
-
-            if (parameters.TryGetValue("printplanninglog", out string runLogPlanningValue))
+            else if (hasSet)
             {
-                printPlanning = true;
-                string[] options = runLogPlanningValue.Split(',');
-                foreach (string option in options)
+                if (parameters.TryGetValue("movementshowplanning", out string movementShowPlanning))
                 {
-                    switch (option)
+                    switch (movementShowPlanning)
                     {
-                        case "copy":
-                            copyPlanningLog = true;
-                            break;
-                        case "_": // used to show no input in printout, so we allow it here.
-                            break;
+                        case "on":
+                        case "true":
+                        case "enable":
+                            DebugManager.DebugMovementShowPlanning = true;
+                            Console.Write("debugai set movementshowplanning:true");
+                            return;
+                        case "off":
+                        case "false":
+                        case "disable":
+                            DebugManager.DebugMovementShowPlanning = false;
+                            Console.Write("debugai set movementshowplanning:false");
+                            return;
                         default:
                             ShowHelp();
                             return;
                     }
                 }
+
+                ShowHelp();
+                return;
             }
-
-            Console.Write("debugai " +
-                (displaySetDebugMovementShowPlanningTo ? $"showplanning:{setDebugMovementShowPlanningTo} " : "") +
-                (printPlanning ? $"printplanning:{(copyPlanningLog ? "copy" : "_")} " : "")
-                );
-
-            if (printPlanning)
+            else if (hasCopyPlanningLog)
             {
-                string? formattedPlanningLog = DebugManager.AiPlanningLog.FormatAllStoredRounds();
-                if (formattedPlanningLog is not null) {
-                    Console.Write(formattedPlanningLog);
+                int numberToGet = int.MaxValue;
 
-                    if (copyPlanningLog)
+                if (parameters.TryGetValue("count", out string count))
+                {
+                    if (int.TryParse(count, out int countInt))
                     {
-                        GUIUtility.systemCopyBuffer = formattedPlanningLog;
-                        Console.Write("Formatted planning log coppied to clipboard.");
+                        numberToGet = countInt;
                     }
                 }
-                else
-                {
-                    Console.Write("formattedPlanningLog is null.");
-                }
-            }
 
-            DebugManager.DebugMovementShowPlanning = setDebugMovementShowPlanningTo;
+                if (numberToGet > DebugManager.AiPlanningLog.RoundsCurrentlyStored)
+                {
+                    numberToGet = DebugManager.AiPlanningLog.RoundsCurrentlyStored;
+                }
+
+                string formattedPlanningLog = DebugManager.AiPlanningLog.FormatLastNRounds(numberToGet);
+
+                Console.Write($"debugai copyplanninglog count:{numberToGet}");
+
+                UnityEngine.GUIUtility.systemCopyBuffer = formattedPlanningLog;
+
+                Console.Write("Planning log coppied to clipboard.");
+            }
+            else
+            {
+                ShowHelp();
+                return;
+            }
         }
     }
 }
