@@ -97,6 +97,7 @@ public static partial class DebugManager
                 activePath.RemoveAt(activePath.Count - 1);
             }
         }
+
         private static List<RecursiveStringList> Log { get; set; } = new();
         private static int roundsStoredCount = 2;
         public static int RoundsStoredCount
@@ -148,7 +149,6 @@ public static partial class DebugManager
 
             Log[^1].OpenGroup(name);
         }
-        
 
         public static void Add(string value)
         {
@@ -213,7 +213,6 @@ public static partial class DebugManager
 
             return result;
         }
-
 
         public static string FormatAllStoredRounds()
         {

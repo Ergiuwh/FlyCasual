@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+
+using System.Collections.Generic;
 
 namespace Movement
 {
@@ -55,7 +57,7 @@ namespace Movement
         public ManeuverBearing Bearing;
         public MovementComplexity ColorComplexity;
 
-        private string shipTag;
+        private string? shipTag;
 
         public ManeuverHolder(ManeuverSpeed speed, ManeuverDirection direction, ManeuverBearing bearing, MovementComplexity complexity = MovementComplexity.None)
         {
@@ -67,7 +69,7 @@ namespace Movement
             shipTag = null;
         }
 
-        public ManeuverHolder(string parameters, Ship.GenericShip ship = null)
+        public ManeuverHolder(string parameters, Ship.GenericShip? ship = null)
         {
             string[] arrParameters = parameters.Split('.');
             if (arrParameters.Length < 3)
@@ -164,22 +166,30 @@ namespace Movement
             Bearing = bearing;
 
             ship ??= Selection.ThisShip;
-            shipTag = ship.GetTag();
 
-            Dictionary<string, MovementComplexity> maneuvers = new(ship.Maneuvers);
+            if (ship is not null) {
+                shipTag = ship.GetTag();
 
-            ship.CallReadyToGetManeuvers();
-            ship.OnGetManeuvers?.Invoke(maneuvers);
+                Dictionary<string, MovementComplexity> maneuvers = new(ship.Maneuvers);
 
-            ColorComplexity = maneuvers[parameters];
-            ColorComplexity = ship.GetColorComplexityOfManeuver(this);
+                ship.CallReadyToGetManeuvers();
+                ship.OnGetManeuvers?.Invoke(maneuvers);
+
+                ColorComplexity = maneuvers[parameters];
+                ColorComplexity = ship.GetColorComplexityOfManeuver(this);
+            }
+            else
+            {
+                shipTag = null;
+                ColorComplexity = MovementComplexity.None;
+            }
         }
 
         public void UpdateColorComplexity()
         {
             string parameters = this.ToString();
 
-            Ship.GenericShip ship = Roster.GetShipById(shipTag) ?? Selection.ThisShip;
+            Ship.GenericShip ship = Roster.GetShipById(shipTag) ?? Selection.ThisShip ?? throw new System.Exception("");
             if (!ship.Maneuvers.ContainsKey(parameters))
             {
                 //

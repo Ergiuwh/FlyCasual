@@ -440,9 +440,7 @@ namespace Players
 
         private List<Maneuver> GetShipPossibleManeuvers(GenericShip ship)
         {
-            Dictionary<string, MovementComplexity> maneuversStringFormat = new(ship.Maneuvers);
-            ship.CallReadyToGetManeuvers();
-            ship.OnGetManeuvers?.Invoke(maneuversStringFormat);
+            Dictionary<string, MovementComplexity> maneuversStringFormat = ship.GetManeuvers();
             List<Maneuver> maneuvers = maneuversStringFormat.Select(a => new Maneuver(a.Key, a.Value)).ToList();
             return maneuvers;
         }

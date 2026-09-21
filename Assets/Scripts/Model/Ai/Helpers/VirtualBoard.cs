@@ -482,7 +482,7 @@ namespace AI.Helpers.Navigation
             }
 
             /// <summary>
-            /// If this board is active, also apply the new position.
+            /// If this board is active, automatically apply the new position.
             /// </summary>
             /// <param name="info"></param>
             /// <returns></returns>
