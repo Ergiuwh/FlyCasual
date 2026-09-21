@@ -295,5 +295,23 @@ namespace Movement
 
             SaveFinalPositionInfo(GeneratedShipStands.Last());
         }
+
+        public static class ExposedInternals
+        {
+            public static void GenerateShipStands(MovementPrediction prediction)
+            {
+                prediction.GenerateShipStands();
+            }
+
+            public static void GetResults(MovementPrediction prediction)
+            {
+                prediction.GetResults();
+            }
+
+            public static void DestroyGeneratedShipStands(MovementPrediction prediction)
+            {
+                prediction.DestroyGeneratedShipStands();
+            }
+        }
     }
 }
