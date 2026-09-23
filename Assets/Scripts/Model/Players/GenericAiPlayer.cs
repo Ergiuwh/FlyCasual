@@ -1,4 +1,4 @@
-﻿#nullable enable annotations // enable warnings once Phases is nullable aware
+﻿#nullable enable
 
 using ActionsList;
 using AI.Helpers.Types;
@@ -25,10 +25,13 @@ namespace Players
         public static float WaitAfterPlacingObstacle = 1f;
         public static float WaitWhenInformingAboutCrit = 3f;
 
+        private List<GenericShip> ShipsWithoutManeuverAssignCommandSent;
+
         public GenericAiPlayer() : base()
         {
             PlayerType = PlayerType.Ai;
             Name = "AI";
+            ShipsWithoutManeuverAssignCommandSent = new();
         }
 
         public override void SetupShip()
@@ -69,27 +72,42 @@ namespace Players
         {
             base.PerformManeuver();
 
-            bool foundToActivate = false;
-            foreach (var shipHolder in Roster.GetPlayer(Phases.CurrentPhasePlayer).Ships)
+            GenericShip ship;
+            if (DebugManager.DebugStraightToCombat)
             {
-                if (shipHolder.Value.State.Initiative == Phases.CurrentSubPhase.RequiredInitiative)
-                {
-                    if (!shipHolder.Value.IsManeuverPerformed)
-                    {
-                        foundToActivate = true;
-                        Selection.ChangeActiveShip("ShipId:" + shipHolder.Value.ShipId);
-                        ActivateShip(shipHolder.Value);
-                        break;
-                    }
-                }
+                ship = GetNextShipWithoutFinishedManeuver();
+            }
+            else
+            {
+                ship = SelectShipToActivate();
             }
 
-            if (!foundToActivate)
+            if (ship is not null)
+            {
+                ActivateShip(ship);
+            }
+            else
             {
                 Phases.Next();
             }
         }
 
+        private static GenericShip GetNextShipWithoutFinishedManeuver()
+        {
+            return Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).Ships.Values
+                .Where(n => n.State.Initiative == Phases.CurrentSubPhase.RequiredInitiative)
+                .FirstOrDefault(n => !n.IsManeuverPerformed);
+        }
+
+        protected virtual GenericShip SelectShipToActivate()
+        {
+            return GetNextShipWithoutFinishedManeuver();
+        }
+
+        /// <summary>
+        /// This should be "private void", but HotacAiPlayer.cs requires "public virtual void".
+        /// </summary>
+        /// <param name="ship"></param>
         public virtual void ActivateShip(GenericShip ship)
         {
             Selection.ChangeActiveShip("ShipId:" + ship.ShipId);
@@ -98,7 +116,7 @@ namespace Players
 
         protected void PerformManeuverOfShip(GenericShip ship)
         {
-            if (Selection.ThisShip == null)
+            if (Selection.ThisShip is null)
             {
                 throw new Exception("Selection.ThisShip null in unexpected place.");
             }
@@ -257,7 +275,7 @@ namespace Players
 
             Dictionary<GenericAction, int> actionsPriority = new();
 
-            if (Selection.ActiveShip == null)
+            if (Selection.ActiveShip is null)
             {
                 throw new Exception("Selection.ActiveShip null in unexpected place.");
             }
@@ -336,15 +354,15 @@ namespace Players
 
             if (DebugManager.DebugStraightToCombat)
             {
-                ShipMovementScript.SendAssignManeuverCommand("2.F.S");
+                DirectionsMenu.Callback?.Invoke("2.F.S");
             }
             else
             {
                 Func<string, bool> stringFilter = DirectionsMenu.Filter;
-                
+
                 Maneuver maneuver;
 
-                if (stringFilter == null)
+                if (stringFilter is null)
                 {
                     maneuver = GetManeuverDecisionFnFromFilter()(_ => true);
                 }
@@ -353,7 +371,7 @@ namespace Players
                     maneuver = GetManeuverDecisionFnFromFilter()(ManeuverFilterFromStringFilter(stringFilter));
                 }
 
-                ShipMovementScript.SendAssignManeuverCommand(maneuver.ToString());
+                DirectionsMenu.Callback?.Invoke(maneuver.ToString());
             }
         }
 
@@ -430,7 +448,7 @@ namespace Players
         /// <returns></returns>
         protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool>? filter = null)
         {
-            if (Selection.ThisShip == null)
+            if (Selection.ThisShip is null)
             {
                 throw new Exception("Selection.ThisShip null in unexpected place.");
             }
@@ -452,7 +470,7 @@ namespace Players
 
         protected Maneuver ChooseManeuverFromFilter(Func<Maneuver, bool>? filter = null)
         {
-            if (Selection.ThisShip == null)
+            if (Selection.ThisShip is null)
             {
                 throw new Exception("Selection.ThisShip null in unexpected place.");
             }
@@ -466,7 +484,7 @@ namespace Players
 
             if (targetForAttack != null)
             {
-                if (Selection.ThisShip == null)
+                if (Selection.ThisShip is null)
                 {
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
@@ -492,7 +510,9 @@ namespace Players
             }
             else
             {
+                #nullable disable warnings
                 (Phases.CurrentSubPhase as SelectShipSubPhase).AiSelectPrioritizedTarget();
+                #nullable enable
             }
         }
 
@@ -500,7 +520,9 @@ namespace Players
         {
             base.SelectShipsForAbility();
 
+            #nullable disable warnings
             (Phases.CurrentSubPhase as MultiSelectionSubphase).AiSelectPrioritizedTarget();
+            #nullable enable
         }
 
         public override void RerollManagerIsPrepared()
@@ -513,6 +535,7 @@ namespace Players
         {
             base.PlaceObstacle();
 
+            #nullable disable warnings
             ObstaclesPlacementSubPhase subphase = Phases.CurrentSubPhase as ObstaclesPlacementSubPhase;
             if (subphase.IsRandomSetupSelected[Roster.AnotherPlayer(this.PlayerNo)] || DebugManager.BatchAiSquadTestingModeActive)
             {
@@ -526,6 +549,7 @@ namespace Players
                     Messages.ShowInfo("The AI has placed an obstacle");
                 });
             }
+            #nullable enable
         }
 
         public override void PerformSystemsActivation()
@@ -564,9 +588,11 @@ namespace Players
 
         public override void TakeDecision()
         {
+            #nullable disable warnings
             DecisionSubPhase subphase = (Phases.CurrentSubPhase as DecisionSubPhase);
 
             if (subphase.IsForced)
+            #nullable enable
             {
                 JSONObject parameters = new JSONObject();
                 parameters.AddField("name", subphase.GetDecisions().First().Name);
@@ -579,7 +605,7 @@ namespace Players
             }
             else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
-                if (Selection.ThisShip == null)
+                if (Selection.ThisShip is null)
                 {
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
@@ -588,14 +614,16 @@ namespace Players
             }
             else if (Phases.CurrentSubPhase is FreeActionDecisonSubPhase)
             {
-                if (Selection.ThisShip == null)
+                if (Selection.ThisShip is null)
                 {
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
                 PerformActionFromList(Selection.ThisShip.GetAvailableFreeActions());
             }
+            #nullable disable warnings
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
+            #nullable enable
         }
 
         protected virtual void PerformActionFromList(List<GenericAction> actionsList) { }
@@ -603,6 +631,59 @@ namespace Players
         public override void SyncDiceRerollSelected()
         {
             GameMode.CurrentGameMode.ExecuteCommand(DiceRerollManager.GenerateConfirmRerollCommand());
+        }
+
+        public override void AssignManeuversStart()
+        {
+            base.AssignManeuversStart();
+
+            if (DebugManager.DebugStraightToCombat)
+            {
+                BeginAssignManeuversRecursive();
+            }
+            else
+            {
+                DoPlanningInPlanningPhase(BeginAssignManeuversRecursive);
+            }
+        }
+
+        protected virtual void DoPlanningInPlanningPhase(Action callback)
+        {
+            callback();
+        }
+
+        private void BeginAssignManeuversRecursive()
+        {
+            ShipsWithoutManeuverAssignCommandSent = new(Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).Ships.Values);
+            PlanningPhaseAssignManeuversRecursive();
+        }
+
+        private void PlanningPhaseAssignManeuversRecursive()
+        {
+            GenericShip? ship = ShipsWithoutManeuverAssignCommandSent.LastOrDefault();
+
+            if (ship != null)
+            {
+                Selection.ChangeActiveShip(ship);
+                ShipsWithoutManeuverAssignCommandSent.RemoveAt(ShipsWithoutManeuverAssignCommandSent.Count - 1);
+                if (DebugManager.DebugStraightToCombat)
+                {
+                    DirectionsMenu.Show(ShipMovementScript.SendAssignManeuverCommand, PlanningPhaseAssignManeuversRecursive, null, true);
+                }
+                else
+                {
+                    GameManagerScript.Wait(WaitAfterAssigningDial, delegate { DirectionsMenu.Show(ShipMovementScript.SendAssignManeuverCommand, PlanningPhaseAssignManeuversRecursive, null, true); });
+                }
+            }
+            else
+            {
+                EndAssignManeuversRecursive();
+            }
+        }
+
+        private void EndAssignManeuversRecursive()
+        {
+            GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
         }
     }
 }

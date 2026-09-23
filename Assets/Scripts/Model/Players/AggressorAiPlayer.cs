@@ -23,70 +23,9 @@ namespace Players
             Avatar = "UpgradesList.SecondEdition.IG88D";
         }
 
-        public override void AssignManeuversStart()
+        protected override void DoPlanningInPlanningPhase(Action callback)
         {
-            base.AssignManeuversStart();
-
-            if (!DebugManager.DebugStraightToCombat)
-            {
-                CalculateNavigation();
-            }
-            else
-            {
-                AssignManeuversRecursive();
-            }
-        }
-
-        private void CalculateNavigation()
-        {
-            AI.Aggressor.NavigationSubSystem.CalculateNavigation(AssignManeuversRecursive);
-        }
-
-        private void AssignManeuversRecursive()
-        {
-            GenericShip shipWithoutManeuver = (DebugManager.DebugStraightToCombat) ?
-                GetNextShipWithoutAssignedManeuver() :
-                AI.Aggressor.NavigationSubSystem.GetNextShipWithoutAssignedManeuver();
-
-            if (shipWithoutManeuver != null)
-            {
-                Selection.ChangeActiveShip(shipWithoutManeuver);
-                OpenDirectionsUiSilent();
-            }
-            else
-            {
-                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
-            }
-        }
-
-        private GenericShip GetNextShipWithoutAssignedManeuver()
-        {
-            return Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).Ships.Values
-                .FirstOrDefault(n => n.AssignedManeuver == null && !n.State.IsIonized);
-        }
-
-        private void OpenDirectionsUiSilent()
-        {
-            if (Selection.ThisShip is null ) { throw new Exception(); }
-
-            GameMode.CurrentGameMode.ExecuteCommand(
-                PlanningSubPhase.GenerateSelectShipToAssignManeuver(Selection.ThisShip.ShipId)
-            );
-        }
-
-        public override void AskAssignManeuver()
-        {
-            base.AskAssignManeuver();
-            if (Phases.CurrentPhase is PlanningPhase) {
-                if (DebugManager.DebugStraightToCombat)
-                {
-                    AssignManeuversRecursive();
-                }
-                else
-                {
-                    GameManagerScript.Wait(WaitAfterAssigningDial, delegate { AssignManeuversRecursive(); });
-                }
-            }
+            AI.Aggressor.NavigationSubSystem.CalculateNavigation(callback);
         }
 
         protected override GenericShip? SelectTargetForAttack()
@@ -164,29 +103,16 @@ namespace Players
             AI.Aggressor.DeploymentSubSystem.SetupShip();
         }
 
-        public override void PerformManeuver()
+        protected override GenericShip SelectShipToActivate()
         {
-            Roster.HighlightPlayer(PlayerNo);
-
-            GenericShip nextShip = (!DebugManager.DebugStraightToCombat) ?
-                AI.Aggressor.NavigationSubSystem.GetNextShipWithoutFinishedManeuver() :
-                GetNextShipWithoutFinishedManeuver();
-
-            if (nextShip != null)
+            if (DebugManager.DebugStraightToCombat)
             {
-                Selection.ChangeActiveShip("ShipId:" + nextShip.ShipId);
-                ActivateShip(nextShip);
+                return base.SelectShipToActivate();
             }
             else
             {
-                Phases.Next();
+                return AI.Aggressor.NavigationSubSystem.GetNextShipWithoutFinishedManeuver();
             }
-        }
-
-        private static GenericShip GetNextShipWithoutFinishedManeuver()
-        {
-            return Roster.GetPlayer(Phases.CurrentSubPhase.RequiredPlayer).Ships.Values
-                .FirstOrDefault(n => !n.IsManeuverPerformed);
         }
 
         protected override Maneuver ChooseManeuverFrom(List<Maneuver> options)

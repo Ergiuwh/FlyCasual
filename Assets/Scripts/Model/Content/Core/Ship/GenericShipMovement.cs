@@ -322,7 +322,7 @@ namespace Ship
 
             foreach (KeyValuePair<string, MovementComplexity> maneuverHolder in maneuvers)
             {
-                result.Add(maneuverHolder.Key, new ManeuverHolder(maneuverHolder.Key).ColorComplexity);
+                result.Add(maneuverHolder.Key, new ManeuverHolder(maneuverHolder.Key, this).ColorComplexity);
             }
 
             return result;
