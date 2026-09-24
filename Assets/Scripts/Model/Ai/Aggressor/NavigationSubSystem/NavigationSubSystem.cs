@@ -109,7 +109,7 @@ namespace AI.Aggressor
         {
             foreach (GenericShip ship in OrderOfActivation)
             {
-                FastPredictBestManeuverForShip(ship);
+                FastPredictBestManeuverForShip(ship, CallNavigationResultCalculateInRoundTwo);
                 yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                     VirtualBoard,
                     ship,
@@ -126,7 +126,7 @@ namespace AI.Aggressor
             foreach (GenericShip ship in OrderOfActivation)
             {
                 if (ship.Owner == CurrentPlayer) {
-                    yield return PredictBestManeuverForShip(ship);
+                    yield return PredictBestManeuverForShip(ship, CallNavigationResultCalculate);
                     yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                         VirtualBoard,
                         ship,
@@ -138,12 +138,22 @@ namespace AI.Aggressor
             }
         }
 
+        private static void CallNavigationResultCalculateInRoundTwo(NavigationResult navigationResult)
+        {
+            navigationResult.CalculatePriorityInRoundTwo();
+        }
+
+        private static void CallNavigationResultCalculate(NavigationResult navigationResult)
+        {
+            navigationResult.CalculatePriority();
+        }
+
         /// <summary>
         /// Calls VirtualBoard.GetShipDataOrError(ship).SetPlannedManeuver(maneuver) with the selected maneuver
         /// </summary>
         /// <param name="ship"></param>
         /// <returns></returns>
-        private static IEnumerator PredictBestManeuverForShip(GenericShip ship)
+        private static IEnumerator PredictBestManeuverForShip(GenericShip ship, Action<NavigationResult> navigationResultPriorityCalculator)
         {
             if (ship.Owner == CurrentPlayer)
             {
@@ -157,7 +167,7 @@ namespace AI.Aggressor
             BatchedMovementPrediction<string> batchedMovementPredictions = NavFunctions.CreateBatchedPredictions(ship, ship.GetManeuvers());
             yield return batchedMovementPredictions.Calculate();
 
-            PredictBestManeuverForShip(ship, a => batchedMovementPredictions.Predictions[a]);
+            PredictBestManeuverForShip(ship, a => batchedMovementPredictions.Predictions[a], navigationResultPriorityCalculator);
         }
 
         /// <summary>
@@ -165,9 +175,9 @@ namespace AI.Aggressor
         /// </summary>
         /// <param name="ship"></param>
         /// <returns></returns>
-        private static void FastPredictBestManeuverForShip(GenericShip ship)
+        private static void FastPredictBestManeuverForShip(GenericShip ship, Action<NavigationResult> navigationResultPriorityCalculator)
         {
-            PredictBestManeuverForShip(ship, a => NavFunctions.FastMovementPrediction(ship, a));
+            PredictBestManeuverForShip(ship, a => NavFunctions.FastMovementPrediction(ship, a), navigationResultPriorityCalculator);
         }
 
         /// <summary>
@@ -175,8 +185,13 @@ namespace AI.Aggressor
         /// </summary>
         /// <param name="ship"></param>
         /// <returns></returns>
-        private static void PredictBestManeuverForShip(GenericShip ship, Func<string, MovementPrediction> predictionProvider)
+        private static void PredictBestManeuverForShip(GenericShip ship, Func<string, MovementPrediction> predictionProvider, Action<NavigationResult> navigationResultPriorityCalculator)
         {
+            if (CurrentPlayer is null)
+            {
+                throw new Exception("AI.Aggressor.NavigationSubSystem : PredictBestManeuverForShip called when CurrentPlayer is null.");
+            }
+
             DebugManager.AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship.ShipId}");
 
             if (ship.Owner == CurrentPlayer)
@@ -190,6 +205,33 @@ namespace AI.Aggressor
 
             Dictionary<string, NavigationResult> navigationResults = new();
 
+            List<GenericShip> enemyShipsWithoutOtherTargets = new();
+            foreach (GenericShip enemyShip in CurrentPlayer.EnemyShips.Values)
+            {
+                bool hasShot = false;
+                foreach (GenericShip myShip in enemyShip.Owner.AnotherPlayer.Units.Values)
+                {
+                    if (myShip == ship)
+                    {
+                        continue;
+                    }
+
+                    // This will be enough for most cases, exceptions are tie/wi with a cannon and anything with a turret upgrade.
+                    ShotInfo shotInfo = new(enemyShip, myShip, enemyShip.PrimaryWeapons);
+
+                    if (shotInfo.IsShotAvailable)
+                    {
+                        hasShot = true;
+                        break;
+                    }
+                }
+                
+                if (!hasShot)
+                {
+                    enemyShipsWithoutOtherTargets.Add(enemyShip);
+                }
+            }
+
             foreach (KeyValuePair<string, MovementComplexity> maneuver in ship.GetManeuvers())
             {
                 VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
@@ -198,6 +240,7 @@ namespace AI.Aggressor
 
                 CurrentNavigationResult = new NavigationResult()
                 {
+                    TheShip = ship,
                     movement = prediction.CurrentMovement,
                     isBumped = prediction.IsBumped,
                     isLandedOnObstacle = prediction.IsLandedOnAsteroid,
@@ -206,7 +249,7 @@ namespace AI.Aggressor
                     minesHit = prediction.MinesHit.Count,
                     isOffTheBoardNextTurn = false, // Will be set by CheckNextTurnRecursive.
                     isHitAsteroidNextTurn = false, // Will be set by CheckNextTurnRecursive.
-                    FinalPositionInfo = prediction.FinalPositionInfo
+                    FinalPositionInfo = prediction.FinalPositionInfo,
                 };
 
                 if (!prediction.IsOffTheBoard)
@@ -219,6 +262,19 @@ namespace AI.Aggressor
                     CurrentNavigationResult.distanceToNearestEnemyInShotRange = minDistanceToNearestEnemyInShotRange;
                     CurrentNavigationResult.angleToNearestEnemy = minAngle;
                     CurrentNavigationResult.enemiesInShotRange = enemiesInShotRange;
+
+                    int enemiesWithThisAsOnlyTarget = 0;
+                    foreach (GenericShip enemyShip in enemyShipsWithoutOtherTargets)
+                    {
+                        ShotInfo shotInfo = new(enemyShip, ship, enemyShip.PrimaryWeapons);
+
+                        if (shotInfo.IsShotAvailable)
+                        {
+                            enemiesWithThisAsOnlyTarget += 1;
+                        }
+                    }
+
+                    CurrentNavigationResult.enemiesWithThisAsOnlyTarget = enemiesWithThisAsOnlyTarget;
                 }
 
                 CurrentNavigationResult.CalculatePriority();

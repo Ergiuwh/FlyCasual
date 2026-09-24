@@ -24,7 +24,11 @@ namespace AI.Aggressor
         public bool isOffTheBoardNextTurn;
         public bool isHitAsteroidNextTurn;
 
+        public int enemiesWithThisAsOnlyTarget;
+
         public bool isBumped;
+
+        public GenericShip? TheShip;
 
         public GenericMovement? movement;
 
@@ -32,7 +36,7 @@ namespace AI.Aggressor
 
         public ShipPositionInfo FinalPositionInfo { get; set; }
 
-        public void CalculatePriority()
+        public void CalculatePriorityInRoundTwo()
         {
             if (isOffTheBoard)
             {
@@ -40,13 +44,15 @@ namespace AI.Aggressor
                 return;
             }
 
-            if (Selection.ThisShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires Selection.ThisShip != null");
+            Priority = 0;
+
+            if (TheShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires this.TheShip != null");
 
             if (isLandedOnObstacle) Priority -= 20000;
 
             if (isOffTheBoardNextTurn) Priority -= 40000;
 
-            Priority += enemiesInShotRange * 1000;
+            Priority += (int)(Math.Sqrt(enemiesInShotRange) * 1000);
 
             Priority -= minesHit * 2000;
 
@@ -57,9 +63,9 @@ namespace AI.Aggressor
 
             if (isBumped) Priority -= 500;
 
-            if (Selection.ThisShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement?.Bearing != ManeuverBearing.Straight)
+            if (TheShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement?.Bearing != ManeuverBearing.Straight)
             {
-                if (Selection.ThisShip.State.HullCurrent + Selection.ThisShip.State.ShieldsCurrent == 1)
+                if (TheShip.State.HullCurrent + TheShip.State.ShieldsCurrent == 1)
                 {
                     Priority -= 20000;
                 }
@@ -72,10 +78,10 @@ namespace AI.Aggressor
             switch (movement?.ColorComplexity)
             {
                 case MovementComplexity.Easy:
-                    if (Selection.ThisShip.IsStressed) Priority += 500;
+                    if (TheShip.IsStressed) Priority += 500;
                     break;
                 case MovementComplexity.Complex:
-                    if (Selection.ThisShip.IsStressed)
+                    if (TheShip.IsStressed)
                     {
                         Priority = int.MinValue;
                     }
@@ -95,7 +101,7 @@ namespace AI.Aggressor
             Priority += (10 - (int)distanceToNearestEnemy) * 10;
 
             //angle is 0..180, result 0..180
-            Priority += (180 - Mathf.RoundToInt(angleToNearestEnemy));
+            Priority += 180 - Mathf.RoundToInt(angleToNearestEnemy);
         }
 
         public override string ToString()
@@ -111,14 +117,84 @@ namespace AI.Aggressor
             if (isOffTheBoard) result += "OffBoard ";
             if (isLandedOnObstacle) result += "LandedOnObstacle ";
             if (isBumped) result += "Bumped ";
-            
 
             if (enemiesInShotRange > 0) result += "enemiesToShoot:" + enemiesInShotRange + " ";
+            if (enemiesWithThisAsOnlyTarget > 0) result += "timesShot:" + enemiesWithThisAsOnlyTarget + " ";
 
             if (obstaclesHit > 0) result += "obstaclesHit:" + obstaclesHit + " ";
             if (minesHit > 0) result += "minesHit:" + obstaclesHit + " ";
 
             return result;
+        }
+
+        public void CalculatePriority()
+        {
+            if (isOffTheBoard)
+            {
+                Priority = int.MinValue;
+                return;
+            }
+
+            Priority = 0;
+
+            if (TheShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires this.TheShip != null");
+
+            if (isLandedOnObstacle) Priority -= 20000;
+
+            if (isOffTheBoardNextTurn) Priority -= 40000;
+
+            Priority += (int)(Math.Sqrt(enemiesInShotRange) * 1000);
+
+            Priority -= enemiesWithThisAsOnlyTarget * 800;
+
+            Priority -= minesHit * 2000;
+
+            int asteroidAvoidPriority = (BoardTools.Board.DistanceToRange(distanceToNearestEnemy) < 4) ? 1 : 10;
+
+            Priority -= obstaclesHit * 2000 * asteroidAvoidPriority;
+            if (isHitAsteroidNextTurn) Priority -= 1000 * asteroidAvoidPriority;
+
+            if (isBumped) Priority -= 500;
+
+            if (TheShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement?.Bearing != ManeuverBearing.Straight)
+            {
+                if (TheShip.State.HullCurrent + TheShip.State.ShieldsCurrent == 1)
+                {
+                    Priority -= 20000;
+                }
+                else
+                {
+                    Priority -= 1000;
+                }
+            }
+
+            switch (movement?.ColorComplexity)
+            {
+                case MovementComplexity.Easy:
+                    if (TheShip.IsStressed) Priority += 500;
+                    break;
+                case MovementComplexity.Complex:
+                    if (TheShip.IsStressed)
+                    {
+                        Priority = int.MinValue;
+                    }
+                    else
+                    {
+                        Priority -= 500;
+                    }
+                    break;
+                case MovementComplexity.None: // Impossible maneuvers
+                    Priority = int.MinValue;
+                    break;
+                default:
+                    break;
+            }
+
+            //distance is 0..10, result 0..100
+            Priority += (10 - (int)distanceToNearestEnemy) * 10;
+
+            //angle is 0..180, result 0..180
+            Priority += 180 - Mathf.RoundToInt(angleToNearestEnemy);
         }
     }
 }

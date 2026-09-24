@@ -62,18 +62,20 @@ namespace AI.Helpers.Navigation
         }
 
 
-        public static GenericMovement CreateMovement(GenericShip ship, Maneuver maneuver, bool isSimple = true, MovementComplexity complexity = MovementComplexity.None)
+        public static GenericMovement CreateMovement(GenericShip ship, Maneuver maneuver, bool isSimple = true)
         {
-            return CreateMovement(ship, maneuver.ToString(), isSimple);
+            return CreateMovement(ship, maneuver.ToString(), isSimple, maneuver.GetComplexity());
         }
 
-        public static GenericMovement CreateMovement(GenericShip ship, string maneuverCode, bool isSimple = true, MovementComplexity complexity = MovementComplexity.None)
+        public static GenericMovement CreateMovement(GenericShip ship, string maneuverCode, bool isSimple = true, MovementComplexity? complexity = null)
         {
             GenericMovement movement = ShipMovementScript.MovementFromString(maneuverCode);
             movement.TheShip = ship;
             movement.Initialize();
             movement.IsSimple = isSimple;
-            movement.ColorComplexity = complexity;
+            if (complexity != null) {
+                movement.ColorComplexity = (MovementComplexity)complexity;
+            }
             return movement;
         }
 
