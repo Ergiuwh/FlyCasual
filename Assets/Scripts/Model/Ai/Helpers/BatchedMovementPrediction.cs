@@ -10,9 +10,9 @@ using UnityEngine;
 namespace AI.Helpers.Navigation.Internal
 {
     public class BatchedMovementPrediction<TKey> {
-        private Dictionary<TKey, GenericMovement> movements;
+        private Dictionary<TKey, GenericMovement> Movements;
 
-        private List<GenericShip> ships;
+        private List<GenericShip> Ships;
 
         private Dictionary<TKey, MovementPrediction>? predictions;
         public Dictionary<TKey, MovementPrediction> Predictions
@@ -25,13 +25,13 @@ namespace AI.Helpers.Navigation.Internal
 
         public BatchedMovementPrediction(Dictionary<TKey, GenericMovement> movements, List<GenericShip> ships)
         {
-            this.movements = movements;
-            this.ships = ships;
+            Movements = movements;
+            Ships = ships;
         }
 
         public BatchedMovementPrediction(Dictionary<TKey, GenericMovement> movements)
         {
-            this.movements = movements;
+            Movements = movements;
 
             HashSet<GenericShip> shipSet = new();
             foreach (GenericMovement movement in movements.Values)
@@ -39,7 +39,7 @@ namespace AI.Helpers.Navigation.Internal
                 shipSet.Add(movement.TheShip);
             }
 
-            this.ships = shipSet.ToList();
+            Ships = shipSet.ToList();
         }
 
         public IEnumerator Calculate()
@@ -61,7 +61,7 @@ namespace AI.Helpers.Navigation.Internal
         {
             Dictionary<GenericShip, GenericMovement> savedMovements = new();
 
-            foreach (GenericShip ship in ships)
+            foreach (GenericShip ship in Ships)
             {
                 savedMovements.Add(ship, ship.AssignedManeuver);
             }
@@ -73,7 +73,7 @@ namespace AI.Helpers.Navigation.Internal
         {
             predictions = new();
 
-            foreach (KeyValuePair<TKey, GenericMovement> movementPair in movements)
+            foreach (KeyValuePair<TKey, GenericMovement> movementPair in Movements)
             {
                 predictions.Add(movementPair.Key, new MovementPrediction(movementPair.Value.TheShip, movementPair.Value));
             }
@@ -81,7 +81,7 @@ namespace AI.Helpers.Navigation.Internal
 
         private void ToggleMovingShipColliders(bool newValue)
         {
-            foreach (GenericShip ship in ships)
+            foreach (GenericShip ship in Ships)
             {
                 ship.ToggleColliders(newValue);
             }
@@ -89,7 +89,7 @@ namespace AI.Helpers.Navigation.Internal
 
         private void GenerateShipStands()
         {
-            // This is private, and we only call this after CreatePredictions.
+            // null forgiving: This is private, and we only call this after CreatePredictions.
             foreach (MovementPrediction prediction in predictions!.Values)
             {
                 Selection.ThisShip = prediction.Ship;
@@ -100,7 +100,7 @@ namespace AI.Helpers.Navigation.Internal
 
         private void GetResults()
         {
-            // This is private, and we only call this after CreatePredictions.
+            // null forgiving: This is private, and we only call this after CreatePredictions.
             foreach (MovementPrediction prediction in predictions!.Values)
             {
                 MovementPrediction.ExposedInternals.GetResults(prediction);
@@ -109,6 +109,7 @@ namespace AI.Helpers.Navigation.Internal
 
         private void Cleanup()
         {
+            // null forgiving: This is private, and we only call this after CreatePredictions.
             foreach (MovementPrediction prediction in predictions!.Values)
             {
                 MovementPrediction.ExposedInternals.DestroyGeneratedShipStands(prediction);

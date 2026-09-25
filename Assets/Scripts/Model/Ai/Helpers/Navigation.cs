@@ -120,12 +120,12 @@ namespace AI.Helpers.Navigation
         /// <param name="ship"></param>
         /// <param name="maneuvers"></param>
         /// <returns></returns>
-        public static BatchedMovementPrediction<Maneuver> CreateBatchedPredictions(GenericShip ship, List<Maneuver> maneuvers)
+        public static BatchedMovementPrediction<Maneuver> CreateBatchedPredictions(GenericShip ship, List<Maneuver> maneuvers, bool isSimple = true)
         {
             Dictionary<Maneuver, GenericMovement> movements = new();
             foreach (Maneuver maneuver in maneuvers)
             {
-                movements.Add(maneuver, CreateMovement(ship, maneuver, true));
+                movements.Add(maneuver, CreateMovement(ship, maneuver, isSimple));
             }
 
             return new BatchedMovementPrediction<Maneuver>(
@@ -139,12 +139,12 @@ namespace AI.Helpers.Navigation
         /// <param name="ship"></param>
         /// <param name="maneuvers"></param>
         /// <returns></returns>
-        public static BatchedMovementPrediction<string> CreateBatchedPredictions(GenericShip ship, List<string> maneuverCodes)
+        public static BatchedMovementPrediction<string> CreateBatchedPredictions(GenericShip ship, List<string> maneuverCodes, bool isSimple = true)
         {
             Dictionary<string, GenericMovement> movements = new();
             foreach (string maneuverCode in maneuverCodes)
             {
-                movements.Add(maneuverCode, CreateMovement(ship, maneuverCode, true));
+                movements.Add(maneuverCode, CreateMovement(ship, maneuverCode,isSimple));
             }
 
             return new BatchedMovementPrediction<string>(
@@ -158,12 +158,12 @@ namespace AI.Helpers.Navigation
         /// <param name="ship"></param>
         /// <param name="maneuvers"></param>
         /// <returns></returns>
-        public static BatchedMovementPrediction<string> CreateBatchedPredictions(GenericShip ship, Dictionary<string, MovementComplexity> maneuvers)
+        public static BatchedMovementPrediction<string> CreateBatchedPredictions(GenericShip ship, Dictionary<string, MovementComplexity> maneuvers, bool isSimple = true)
         {
             Dictionary<string, GenericMovement> movements = new();
             foreach (KeyValuePair<string, MovementComplexity> maneuver in maneuvers)
             {
-                movements.Add(maneuver.Key, CreateMovement(ship, maneuver.Key, isSimple: true, complexity: maneuver.Value));
+                movements.Add(maneuver.Key, CreateMovement(ship, maneuver.Key, isSimple: isSimple, complexity: maneuver.Value));
             }
 
             return new BatchedMovementPrediction<string>(
@@ -181,6 +181,7 @@ namespace AI.Helpers.Navigation
             {
                 return prediction ?? throw new System.Exception("Attempt to access MovementPredictionHelper.Prediction before MovementPredictionHelper.Calculate().");
             }
+            private set { prediction = value; }
         }
 
         /// <summary>
@@ -211,8 +212,8 @@ namespace AI.Helpers.Navigation
 
             movement.TheShip.SetAssignedManeuver(movement, isSilent: true);
 
-            prediction = new MovementPrediction(movement.TheShip, movement);
-            yield return prediction.CalculateMovementPredicition();
+            Prediction = new MovementPrediction(movement.TheShip, movement);
+            yield return Prediction.CalculateMovementPredicition();
 
             movement.TheShip.SetAssignedManeuver(savedMovement, isSilent: true);
 
