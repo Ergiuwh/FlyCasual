@@ -165,10 +165,30 @@ namespace AI.Aggressor
 
             VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
 
-            BatchedMovementPrediction<string> batchedMovementPredictions = NavFunctions.CreateBatchedPredictions(ship, ship.GetManeuvers());
+            Dictionary<string, MovementPrediction> finalPredictions = new();
+            Dictionary<string, MovementComplexity> maneuvers = new();
+            foreach (KeyValuePair<string, MovementComplexity> maneuver in ship.GetManeuvers())
+            {
+                MovementPrediction fastPrediction = NavFunctions.FastMovementPrediction(ship, maneuver.Key);
+                if (fastPrediction.IsOffTheBoard)
+                {
+                    finalPredictions.Add(maneuver.Key, fastPrediction);
+                }
+                else
+                {
+                    maneuvers.Add(maneuver.Key, maneuver.Value);
+                }
+            }
+
+            BatchedMovementPrediction<string> batchedMovementPredictions = NavFunctions.CreateBatchedPredictions(ship, maneuvers);
             yield return batchedMovementPredictions.Calculate();
 
-            PredictBestManeuverForShip(ship, a => batchedMovementPredictions.Predictions[a], navigationResultPriorityCalculator);
+            foreach (KeyValuePair<string, MovementPrediction> item in batchedMovementPredictions.Predictions)
+            {
+                finalPredictions.Add(item.Key, item.Value);
+            }
+
+            PredictBestManeuverForShip(ship, a => finalPredictions[a], navigationResultPriorityCalculator);
         }
 
         /// <summary>
@@ -283,7 +303,8 @@ namespace AI.Aggressor
             {
                 TheShip = prediction.CurrentMovement.TheShip,
                 movement = prediction.CurrentMovement,
-                isBumped = prediction.IsBumped,
+                isBumpedEnemy = prediction.IsBumpedAnotherTeam,
+                isBumpedFriendly = prediction.IsBumpedSameTeam,
                 isLandedOnObstacle = prediction.IsLandedOnAsteroid,
                 obstaclesHit = prediction.AsteroidsHit.Count,
                 isOffTheBoard = prediction.IsOffTheBoard,

@@ -26,7 +26,8 @@ namespace AI.Aggressor
 
         public int enemiesWithThisAsOnlyTarget;
 
-        public bool isBumped;
+        public bool isBumpedEnemy;
+        public bool isBumpedFriendly;
 
         public GenericShip? TheShip;
 
@@ -61,7 +62,9 @@ namespace AI.Aggressor
             Priority -= obstaclesHit * 2000 * asteroidAvoidPriority;
             if (isHitAsteroidNextTurn) Priority -= 1000 * asteroidAvoidPriority;
 
-            if (isBumped) Priority -= 500;
+            if (isBumpedEnemy) Priority -= 400;
+
+            if (isBumpedFriendly) Priority -= 700;
 
             if (TheShip.Damage.HasCrit(typeof(DamageDeckCardSE.LooseStabilizer)) && movement?.Bearing != ManeuverBearing.Straight)
             {
@@ -141,7 +144,8 @@ namespace AI.Aggressor
 
             if (isOffTheBoard) result += "OffBoard ";
             if (isLandedOnObstacle) result += "LandedOnObstacle ";
-            if (isBumped) result += "Bumped ";
+            if (isBumpedEnemy) result += "BumpedEnemy ";
+            if (isBumpedFriendly) result += "BumpedFriendly ";
 
             if (enemiesInShotRange > 0) result += "enemiesToShoot:" + enemiesInShotRange + " ";
             if (enemiesWithThisAsOnlyTarget > 0) result += "timesShot:" + enemiesWithThisAsOnlyTarget + " ";
