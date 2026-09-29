@@ -65,7 +65,7 @@ namespace AI.Helpers.Navigation
                 throw new Exception("Attempt to activate a virtual board while another is active.");
             }
         }
-        
+
         /// <summary>
         /// This deactivates the active virtual board first.
         /// </summary>
@@ -459,16 +459,6 @@ namespace AI.Helpers.Navigation
                 ShipInfo = CreatedBy.Ships[Ship];
             }
 
-            public ShipInterface ApplyPosition()
-            {
-                if (CreatedBy.State == VirtualBoardState.Inactive)
-                {
-                    throw new Exception("Attempt to apply positions of an inactive virtual board.");
-                }
-                ShipInfo.ApplyPosition(Ship);
-                return this;
-            }
-
             public ShipInterface RemoveCollisions()
             {
                 ShipInfo.RemoveCollisions(Ship);
@@ -496,7 +486,11 @@ namespace AI.Helpers.Navigation
                 ShipInfo.VirtualPosition = info;
                 if (applyPosition)
                 {
-                    ApplyPosition();
+                    if (CreatedBy.State == VirtualBoardState.Inactive)
+                    {
+                        throw new Exception("Attempt to apply positions of an inactive virtual board.");
+                    }
+                    ShipInfo.ApplyPosition(Ship);
                 }
 
                 return this;

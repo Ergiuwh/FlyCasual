@@ -609,7 +609,7 @@ namespace Players
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
-                PerformActionFromList(Selection.ThisShip.GetAvailableActions());
+                PerformAction(SelectActionToPerformFromList(Selection.ThisShip.GetAvailableActions()));
             }
             else if (Phases.CurrentSubPhase is FreeActionDecisonSubPhase)
             {
@@ -618,14 +618,36 @@ namespace Players
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
-                PerformActionFromList(Selection.ThisShip.GetAvailableFreeActions());
+                PerformAction(SelectActionToPerformFromList(Selection.ThisShip.GetAvailableActions()));
             }
             #nullable disable warnings
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
             #nullable enable
         }
 
-        protected virtual void PerformActionFromList(List<GenericAction> actionsList) { }
+        protected void PerformAction(GenericAction? action)
+        {
+            if (action is not null)
+            {
+                JSONObject parameters = new();
+                parameters.AddField("name", action.Name);
+                GameController.SendCommand(
+                    GameCommandTypes.Decision,
+                    Phases.CurrentSubPhase.GetType(),
+                    Phases.CurrentSubPhase.ID,
+                    parameters.ToString()
+                );
+            }
+            else
+            {
+                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
+            }
+        }
+
+        protected virtual GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList)
+        {
+            return null;
+        }
 
         public override void SyncDiceRerollSelected()
         {

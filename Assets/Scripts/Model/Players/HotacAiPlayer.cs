@@ -1,11 +1,8 @@
-﻿using GameModes;
+﻿using ActionsList;
+using GameModes;
 using Ship;
-using SubPhases;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace Players
 {
@@ -120,17 +117,16 @@ namespace Players
             new AI.Swerve(true);
         }
 
-        protected override void PerformActionFromList(List<ActionsList.GenericAction> actionsList)
+        // This has not been tested after using SelectActionToPerformFromList.
+        protected override GenericAction SelectActionToPerformFromList(List<GenericAction> actionsList)
         {
-            bool isActionTaken = false;
-
             if (Selection.ThisShip.Tokens.GetToken(typeof(Tokens.StressToken)) != null)
             {
-                isActionTaken = true;
                 Selection.ThisShip.Tokens.RemoveToken(
                     typeof(Tokens.StressToken),
-                    Phases.CurrentSubPhase.CallBack
+                    delegate {  }
                 );
+                return null;
             }
             else
             {
@@ -152,25 +148,12 @@ namespace Players
 
                     if (prioritizedActions.Value > 0)
                     {
-                        isActionTaken = true;
-
-                        //Actions.TakeActionStart(prioritizedActions.Key);
-                        JSONObject parameters = new JSONObject();
-                        parameters.AddField("name", prioritizedActions.Key.Name);
-                        GameController.SendCommand(
-                            GameCommandTypes.Decision,
-                            Phases.CurrentSubPhase.GetType(),
-                            Phases.CurrentSubPhase.ID,
-                            parameters.ToString()
-                        );
+                        return prioritizedActions.Key;
                     }
                 }
             }
 
-            if (!isActionTaken)
-            {
-                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
-            }
+            return null;
         }
 
     }

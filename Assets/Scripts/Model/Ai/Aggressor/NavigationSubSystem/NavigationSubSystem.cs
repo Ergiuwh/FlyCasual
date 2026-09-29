@@ -1,7 +1,9 @@
 ﻿#nullable enable
 
+using ActionsList;
 using AI.Helpers.Navigation;
 using AI.Helpers.Navigation.Internal;
+using AI.Helpers.Navigation.PredictionHelpers;
 using AI.Helpers.Types;
 using BoardTools;
 using Movement;
@@ -108,7 +110,7 @@ namespace AI.Aggressor
         {
             foreach (GenericShip ship in OrderOfActivation)
             {
-                FastPredictBestManeuverForShip(ship, CallNavigationResultCalculateInRoundTwo);
+                yield return PredictBestManeuverForShip(ship, CallNavigationResultCalculateInRoundTwo);
                 yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                     VirtualBoard,
                     ship,
@@ -165,11 +167,24 @@ namespace AI.Aggressor
 
             VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
 
+            int indexOfShipInOrderOfActivation = OrderOfActivation.IndexOf(ship);
+            foreach (GenericShip item in OrderOfActivation.GetRange(indexOfShipInOrderOfActivation, OrderOfActivation.Count - indexOfShipInOrderOfActivation))
+            {
+                VirtualBoard.GetShipInterface(item).RemoveCollisions();
+            }
+
             Dictionary<string, MovementPrediction> finalPredictions = new();
             Dictionary<string, MovementComplexity> maneuvers = new();
             foreach (KeyValuePair<string, MovementComplexity> maneuver in ship.GetManeuvers())
             {
-                MovementPrediction fastPrediction = NavFunctions.FastMovementPrediction(ship, maneuver.Key);
+                MovementPrediction fastPrediction = NavFunctions.PredictFinalPosition(ship, maneuver.Key);
+
+                VirtualBoard.GetShipInterface(ship).SetPosition(fastPrediction.FinalPositionInfo);
+
+                fastPrediction.IsOffTheBoard = BoardTools.Board.IsOffTheBoard(ship);
+
+                VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
+
                 if (fastPrediction.IsOffTheBoard)
                 {
                     finalPredictions.Add(maneuver.Key, fastPrediction);
@@ -180,25 +195,16 @@ namespace AI.Aggressor
                 }
             }
 
-            BatchedMovementPrediction<string> batchedMovementPredictions = NavFunctions.CreateBatchedPredictions(ship, maneuvers);
-            yield return batchedMovementPredictions.Calculate();
+            yield return MovementPredictionBatchManager.Calculate(ship, maneuvers);
 
-            foreach (KeyValuePair<string, MovementPrediction> item in batchedMovementPredictions.Predictions)
+            foreach (KeyValuePair<string, MovementPrediction> item in MovementPredictionBatchManager.Predictions)
             {
                 finalPredictions.Add(item.Key, item.Value);
             }
 
-            PredictBestManeuverForShip(ship, a => finalPredictions[a], navigationResultPriorityCalculator);
-        }
+            VirtualBoard.ReturnAllCollisions();
 
-        /// <summary>
-        /// Calls VirtualBoard.GetShipDataOrError(ship).SetPlannedManeuver(maneuver) with the selected maneuver
-        /// </summary>
-        /// <param name="ship"></param>
-        /// <returns></returns>
-        private static void FastPredictBestManeuverForShip(GenericShip ship, Action<NavigationResult> navigationResultPriorityCalculator)
-        {
-            PredictBestManeuverForShip(ship, a => NavFunctions.FastMovementPrediction(ship, a), navigationResultPriorityCalculator);
+            PredictBestManeuverForShip(ship, a => finalPredictions[a], navigationResultPriorityCalculator);
         }
 
         /// <summary>
@@ -293,11 +299,11 @@ namespace AI.Aggressor
         }
 
         /// <summary>
-        /// May change TheShip's virtual position. May change this.CurrentNavigationResult.
+        /// May change TheShip's virtual position. May change CurrentNavigationResult.
         /// </summary>
         /// <param name="prediction"></param>
         /// <returns></returns>
-        private static NavigationResult CreateNavigationResult(MovementPrediction prediction, List<GenericShip> enemyShipsWithoutOtherTargets)
+        public static NavigationResult CreateNavigationResult(MovementPrediction prediction, List<GenericShip> enemyShipsWithoutOtherTargets)
         {
             CurrentNavigationResult = new NavigationResult()
             {
@@ -377,6 +383,8 @@ namespace AI.Aggressor
 
         private static void ProcessHeavyGeometryCalculations(GenericShip ship, out float minDistanceToEnemyShip, out float minDistanceToNearestEnemyInShotRange, out float minAngle, out int enemiesInShotRange)
         {
+            VirtualBoard.ReturnAllCollisions();
+
             minDistanceToEnemyShip = float.MaxValue;
             minDistanceToNearestEnemyInShotRange = 0;
             minAngle = float.MaxValue;
@@ -424,7 +432,7 @@ namespace AI.Aggressor
 
             foreach (string turnManeuver in NavFunctions.GetShortestTurnManeuvers(ship))
             {
-                MovementPrediction prediction = NavFunctions.FastMovementPrediction(ship, turnManeuver);
+                MovementPrediction prediction = NavFunctions.PredictFinalPosition(ship, turnManeuver);
 
                 if (!prediction.IsOffTheBoard) HasAnyManeuverWithoutOffBoardFinish = true;
                 if (!prediction.IsLandedOnAsteroid) HasAnyManeuverWithoutAsteroidCollision = true;
@@ -531,6 +539,11 @@ namespace AI.Aggressor
             {
                 return options[0];
             }
+        }
+
+        public static void ModifyActionPriority(GenericAction action, ref int priority)
+        {
+            
         }
     }
 }

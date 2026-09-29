@@ -9,7 +9,6 @@ using UnityEngine;
 
 namespace Movement
 {
-
     public class MovementPrediction
     {
         public GenericShip Ship;

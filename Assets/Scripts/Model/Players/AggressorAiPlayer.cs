@@ -1,11 +1,9 @@
 ﻿#nullable enable
 
 using ActionsList;
+using AI.Aggressor;
 using AI.Helpers.Types;
-using GameModes;
-using MainPhases;
 using Ship;
-using SubPhases;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,34 +23,33 @@ namespace Players
 
         protected override void DoPlanningInPlanningPhase(Action callback)
         {
-            AI.Aggressor.NavigationSubSystem.CalculateNavigation(callback);
+            NavigationSubSystem.CalculateNavigation(callback);
         }
 
         protected override GenericShip? SelectTargetForAttack()
         {
             if (DebugManager.DebugNoCombat) return null;
 
-            return AI.Aggressor.TargetingSubSystem.SelectTargetAndWeapon(Selection.ThisShip);
+            return TargetingSubSystem.SelectTargetAndWeapon(Selection.ThisShip);
         }
 
-        protected override void PerformActionFromList(List<GenericAction> actionsList)
+        protected override GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList)
         {
             if (Selection.ThisShip is null ) { throw new Exception(); }
-
-            bool isActionTaken = false;
-
-            List<GenericAction> availableActionsList = actionsList;
 
             Dictionary<GenericAction, int> actionsPriority = new();
 
             GenericShip ship = Selection.ThisShip;
 
-            foreach (GenericAction action in availableActionsList)
+            int redActionPriorityModifier = ship.GetAIStressPriority();
+
+            foreach (GenericAction action in actionsList)
             {
                 ship.CallOnCheckActionComplexity(action, ref action.Color);
                 ship.CallOnCheckActionColor(action, ref action.Color);
 
                 int priority = action.GetActionPriority();
+                NavigationSubSystem.ModifyActionPriority(action, ref priority);
                 ship.Ai.CallGetActionPriority(action, ref priority);
 
                 // De-prioritize red actions unless overriden
@@ -60,9 +57,7 @@ namespace Players
                 {
                     if (ship.IsStressed && !ship.CallCanPerformActionWhileStressed(action)) continue;
 
-                    double redActionPriorityModifier = 0.2;
-                    ship.Ai.CallGetRedActionPriorityModifier(action, ref redActionPriorityModifier);
-                    priority = (int)(priority * redActionPriorityModifier);
+                    priority += redActionPriorityModifier;
                 }
 
                 actionsPriority.Add(action, priority);
@@ -73,34 +68,22 @@ namespace Players
 
             if (actionsPriority.Count > 0)
             {
-                KeyValuePair<GenericAction, int> prioritizedActions = actionsPriority.First();
+                KeyValuePair<GenericAction, int> prioritizedAction = actionsPriority.First();
 
-                if (prioritizedActions.Value > 0)
+                if (prioritizedAction.Value > 0)
                 {
-                    isActionTaken = true;
-
-                    JSONObject parameters = new();
-                    parameters.AddField("name", prioritizedActions.Key.Name);
-                    GameController.SendCommand(
-                        GameCommandTypes.Decision,
-                        Phases.CurrentSubPhase.GetType(),
-                        Phases.CurrentSubPhase.ID,
-                        parameters.ToString()
-                    );
+                    return prioritizedAction.Key;
                 }
             }
 
-            if (!isActionTaken)
-            {
-                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
-            }
+            return null;
         }
 
         public override void SetupShip()
         {
             Roster.HighlightPlayer(PlayerNo);
 
-            AI.Aggressor.DeploymentSubSystem.SetupShip();
+            DeploymentSubSystem.SetupShip();
         }
 
         protected override GenericShip SelectShipToActivate()
@@ -111,13 +94,13 @@ namespace Players
             }
             else
             {
-                return AI.Aggressor.NavigationSubSystem.GetNextShipWithoutFinishedManeuver();
+                return NavigationSubSystem.GetNextShipWithoutFinishedManeuver();
             }
         }
 
         protected override Maneuver ChooseManeuverFrom(List<Maneuver> options)
         {
-            return AI.Aggressor.NavigationSubSystem.SelectManeuverFrom(
+            return NavigationSubSystem.SelectManeuverFrom(
                 options,
                 Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.")
                 );
@@ -125,7 +108,7 @@ namespace Players
 
         protected override Maneuver ChooseManeuverToExecuteFrom(List<Maneuver> options)
         {
-            return AI.Aggressor.NavigationSubSystem.SelectManeuverToExecuteFrom(
+            return NavigationSubSystem.SelectManeuverToExecuteFrom(
                 options,
                 Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.")
                 );

@@ -3,28 +3,15 @@
 using Movement;
 using Ship;
 using System;
-using UnityEngine;
 
 namespace AI.Aggressor
 {
-    public class NavigationResult
+    public class NavigationResult : Internal.PositionScoreInfoInternal
     {
-        public bool isOffTheBoard;
-        public bool isLandedOnObstacle;
-
-        public int enemiesInShotRange;
-
         public int obstaclesHit;
         public int minesHit;
 
-        public float distanceToNearestEnemy;
-        public float distanceToNearestEnemyInShotRange;
-        public float angleToNearestEnemy;
-
-        public bool isOffTheBoardNextTurn;
         public bool isHitAsteroidNextTurn;
-
-        public int enemiesWithThisAsOnlyTarget;
 
         public bool isBumpedEnemy;
         public bool isBumpedFriendly;
@@ -32,8 +19,6 @@ namespace AI.Aggressor
         public GenericShip? TheShip;
 
         public GenericMovement? movement;
-
-        public int Priority { get; private set; }
 
         public ShipPositionInfo FinalPositionInfo { get; set; }
 
@@ -45,15 +30,9 @@ namespace AI.Aggressor
                 return;
             }
 
-            Priority = 0;
-
             if (TheShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires this.TheShip != null");
 
-            if (isLandedOnObstacle) Priority -= 20000;
-
-            if (isOffTheBoardNextTurn) Priority -= 40000;
-
-            Priority += (int)(Math.Sqrt(enemiesInShotRange) * 1000);
+            CalculatePositionPriority();
 
             Priority -= minesHit * 2000;
 
@@ -100,12 +79,6 @@ namespace AI.Aggressor
                 default:
                     break;
             }
-
-            //distance is 0..10, result 0..100
-            Priority += 100 - (int)(distanceToNearestEnemy * 10);
-
-            //angle is 0..180, result 0..180
-            Priority += 180 - Mathf.RoundToInt(angleToNearestEnemy);
         }
 
         public override string ToString()
