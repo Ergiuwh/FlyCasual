@@ -80,7 +80,7 @@ namespace ActionsList
 
         public override int GetActionPriority()
         {
-            int result = 0;
+            int result = -1;
             return result;
         }
 

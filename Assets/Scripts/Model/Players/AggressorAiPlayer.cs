@@ -49,6 +49,11 @@ namespace Players
                 ship.CallOnCheckActionColor(action, ref action.Color);
 
                 int priority = action.GetActionPriority();
+                if (priority == -1)
+                {
+                    continue;
+                }
+
                 NavigationSubSystem.ModifyActionPriority(action, ref priority);
                 ship.Ai.CallGetActionPriority(action, ref priority);
 

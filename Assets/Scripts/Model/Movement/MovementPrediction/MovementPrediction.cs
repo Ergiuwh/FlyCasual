@@ -32,29 +32,23 @@ namespace Movement
 
         private GameObject[] GeneratedShipStands;
 
-        public MovementPrediction(GenericShip ship, GenericMovement movement)
+        public PredictionType predictionType;
+
+        public MovementPrediction(GenericShip ship, GenericMovement movement, PredictionType predictionType = PredictionType.FullInfo)
         {
             Ship = ship;
             CurrentMovement = movement;
+            this.predictionType = predictionType;
         }
 
         public IEnumerator CalculateMovementPredicition()
         {
-            DisableCollisionDetectionAtCurrentPosition();
-            GenerateShipStands();
-            yield return UpdateColisionDetection();
-            EnableCollisionDetectionAtCurrentPosition();
-            PerformCleanup();
-        }
-
-        private void DisableCollisionDetectionAtCurrentPosition()
-        {
             Ship.ToggleColliders(false);
-        }
-
-        private void EnableCollisionDetectionAtCurrentPosition()
-        {
+            GenerateShipStands();
+            yield return new WaitForFixedUpdate();
+            GetResults();
             Ship.ToggleColliders(true);
+            PerformCleanup();
         }
 
         private void GenerateShipStands()
@@ -71,12 +65,6 @@ namespace Movement
         {
             Vector3 centerOfTempBase = shipStand.transform.TransformPoint(new Vector3(0, 0, -Ship.ShipBase.HALF_OF_SHIPSTAND_SIZE));
             shipStand.transform.RotateAround(centerOfTempBase, new Vector3(0, 1, 0), degrees);
-        }
-
-        private IEnumerator UpdateColisionDetection()
-        {
-            yield return new WaitForFixedUpdate();
-            GetResults();
         }
 
         private void GetResults()
@@ -275,10 +263,10 @@ namespace Movement
         // Calculation of only final position
         public void CalculateOnlyFinalPositionIgnoringCollisions()
         {
-            DisableCollisionDetectionAtCurrentPosition();
+            Ship.ToggleColliders(false);
             GenerateFinalShipStand();
             // TODO: GET FINAL POSITION
-            EnableCollisionDetectionAtCurrentPosition();
+            Ship.ToggleColliders(true);
             PerformCleanup();
         }
 
@@ -297,6 +285,36 @@ namespace Movement
             SaveFinalPositionInfo(GeneratedShipStands.Last());
         }
 
+        public IEnumerator CalculateResultsAtFinalPosition()
+        {
+            Ship.ToggleColliders(false);
+            GenerateFinalShipStand();
+            yield return new WaitForFixedUpdate();
+            GetResultsFromFinalPosition();
+            Ship.ToggleColliders(true);
+            PerformCleanup();
+        }
+
+        private void GetResultsFromFinalPosition()
+        {
+            ObstaclesStayDetector obstacleStayDetector = GeneratedShipStands.Last().GetComponentInChildren<ObstaclesStayDetector>();
+
+            if (obstacleStayDetector.OverlapsShip)
+            {
+                ShipsBumpedOnTheEnd.AddRange(obstacleStayDetector.OverlappedShips);
+                ShipsBumped.AddRange(obstacleStayDetector.OverlappedShips);
+            }
+            else
+            {
+                ProcessOffTheBoard(obstacleStayDetector);
+                ProcessObstaclesLanded(obstacleStayDetector);
+                ProcessRemotesOverlaps(obstacleStayDetector);
+                ProcessObstaclesHit(obstacleStayDetector);
+                ProcessMines(obstacleStayDetector);
+            }
+        }
+
+
         public static class ExposedInternals
         {
             public static void GenerateShipStands(MovementPrediction prediction)
@@ -313,6 +331,23 @@ namespace Movement
             {
                 prediction.DestroyGeneratedShipStands();
             }
+
+            public static void GenerateFinalShipStand(MovementPrediction prediction)
+            {
+                prediction.GenerateFinalShipStand();
+            }
+
+            public static void GetResultsFromFinalPosition(MovementPrediction prediction)
+            {
+                prediction.GetResultsFromFinalPosition();
+            }
+        }
+
+        public enum PredictionType
+        {
+            FullInfo,
+            EndpointPositionOnly,
+            EndpointInfo,
         }
     }
 }

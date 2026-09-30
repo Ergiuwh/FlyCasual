@@ -1,4 +1,5 @@
 ﻿#nullable enable
+// parts of this file have nullable warnings disabled.
 
 using ActionsList;
 using AI.Helpers.Types;
@@ -509,9 +510,9 @@ namespace Players
             }
             else
             {
-                #nullable disable warnings
+#nullable disable warnings
                 (Phases.CurrentSubPhase as SelectShipSubPhase).AiSelectPrioritizedTarget();
-                #nullable enable
+#nullable enable
             }
         }
 
@@ -519,9 +520,9 @@ namespace Players
         {
             base.SelectShipsForAbility();
 
-            #nullable disable warnings
+#nullable disable warnings
             (Phases.CurrentSubPhase as MultiSelectionSubphase).AiSelectPrioritizedTarget();
-            #nullable enable
+#nullable enable
         }
 
         public override void RerollManagerIsPrepared()
@@ -534,7 +535,7 @@ namespace Players
         {
             base.PlaceObstacle();
 
-            #nullable disable warnings
+#nullable disable warnings
             ObstaclesPlacementSubPhase subphase = Phases.CurrentSubPhase as ObstaclesPlacementSubPhase;
             if (subphase.IsRandomSetupSelected[Roster.AnotherPlayer(this.PlayerNo)] || DebugManager.BatchAiSquadTestingModeActive)
             {
@@ -548,7 +549,7 @@ namespace Players
                     Messages.ShowInfo("The AI has placed an obstacle");
                 });
             }
-            #nullable enable
+#nullable enable
         }
 
         public override void PerformSystemsActivation()
@@ -587,20 +588,13 @@ namespace Players
 
         public override void TakeDecision()
         {
-            #nullable disable warnings
+#nullable disable warnings
             DecisionSubPhase subphase = (Phases.CurrentSubPhase as DecisionSubPhase);
 
             if (subphase.IsForced)
-            #nullable enable
             {
-                JSONObject parameters = new JSONObject();
-                parameters.AddField("name", subphase.GetDecisions().First().Name);
-                GameController.SendCommand(
-                    GameCommandTypes.Decision,
-                    Phases.CurrentSubPhase.GetType(),
-                    Phases.CurrentSubPhase.ID,
-                    parameters.ToString()
-                );
+                (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
+#nullable enable
             }
             else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
@@ -620,14 +614,18 @@ namespace Players
 
                 PerformAction(SelectActionToPerformFromList(Selection.ThisShip.GetAvailableActions()));
             }
-            #nullable disable warnings
+#nullable disable warnings
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
-            #nullable enable
+#nullable enable
         }
 
         protected void PerformAction(GenericAction? action)
         {
-            if (action is not null)
+            if (action == null)
+            {
+                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
+            }
+            else
             {
                 JSONObject parameters = new();
                 parameters.AddField("name", action.Name);
@@ -637,10 +635,6 @@ namespace Players
                     Phases.CurrentSubPhase.ID,
                     parameters.ToString()
                 );
-            }
-            else
-            {
-                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
             }
         }
 

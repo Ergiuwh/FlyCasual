@@ -242,7 +242,7 @@ namespace ActionsList
 
         public override int GetActionPriority()
         {
-            return 0;
+            return -1;
         }
     }
 }

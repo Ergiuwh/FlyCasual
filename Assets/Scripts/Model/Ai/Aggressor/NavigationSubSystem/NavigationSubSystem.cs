@@ -2,7 +2,6 @@
 
 using ActionsList;
 using AI.Helpers.Navigation;
-using AI.Helpers.Navigation.Internal;
 using AI.Helpers.Navigation.PredictionHelpers;
 using AI.Helpers.Types;
 using BoardTools;
@@ -195,9 +194,9 @@ namespace AI.Aggressor
                 }
             }
 
-            yield return MovementPredictionBatchManager.Calculate(ship, maneuvers);
+            yield return BatchedPredicitionHelper.Calculate(ship, maneuvers);
 
-            foreach (KeyValuePair<string, MovementPrediction> item in MovementPredictionBatchManager.Predictions)
+            foreach (KeyValuePair<string, MovementPrediction> item in BatchedPredicitionHelper.Predictions)
             {
                 finalPredictions.Add(item.Key, item.Value);
             }
