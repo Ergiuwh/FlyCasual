@@ -17,7 +17,7 @@ namespace AI.Helpers.Navigation.PredictionHelpers
             GenericShip? savedThisShip = Selection.ThisShip;
             GenericMovement savedMovement = ship.AssignedManeuver;
 
-            ship.ToggleColliders(false);
+            bool savedColliderState = ship.GetToggleColliders(false);
             Selection.ThisShip = ship;
 
             foreach (MovementPrediction[] chunk in Chunks(batchSize, predictions))
@@ -61,7 +61,8 @@ namespace AI.Helpers.Navigation.PredictionHelpers
                 }
             }
 
-            ship.ToggleColliders(true);
+            ship.ToggleColliders(savedColliderState);
+
             ship.SetAssignedManeuver(savedMovement, isSilent: true);
             Selection.ThisShip = savedThisShip;
         }

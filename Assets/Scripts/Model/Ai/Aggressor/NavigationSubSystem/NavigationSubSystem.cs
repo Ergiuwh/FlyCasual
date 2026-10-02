@@ -109,7 +109,7 @@ namespace AI.Aggressor
         {
             foreach (GenericShip ship in OrderOfActivation)
             {
-                yield return PredictBestManeuverForShip(ship, CallNavigationResultCalculateInRoundTwo);
+                yield return PredictBestManeuverForShipRoundTwo(ship);
                 yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                     VirtualBoard,
                     ship,
@@ -126,7 +126,7 @@ namespace AI.Aggressor
             foreach (GenericShip ship in OrderOfActivation)
             {
                 if (ship.Owner == CurrentPlayer) {
-                    yield return PredictBestManeuverForShip(ship, CallNavigationResultCalculate);
+                    yield return PredictBestManeuverForShipRoundThree(ship);
                     yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                         VirtualBoard,
                         ship,
@@ -148,12 +148,37 @@ namespace AI.Aggressor
             navigationResult.CalculatePriority();
         }
 
-        /// <summary>
-        /// Calls VirtualBoard.GetShipDataOrError(ship).SetPlannedManeuver(maneuver) with the selected maneuver
-        /// </summary>
-        /// <param name="ship"></param>
-        /// <returns></returns>
-        private static IEnumerator PredictBestManeuverForShip(GenericShip ship, Action<NavigationResult> navigationResultPriorityCalculator)
+        private static IEnumerator PredictBestManeuverForShipRoundTwo(GenericShip ship)
+        {
+            if (ship.Owner == CurrentPlayer)
+            {
+                Selection.ChangeActiveShip(ship);
+            }
+            else
+            {
+                Selection.ThisShip = ship;
+            }
+
+            VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
+
+            int indexOfShipInOrderOfActivation = OrderOfActivation.IndexOf(ship);
+            foreach (GenericShip item in OrderOfActivation.GetRange(indexOfShipInOrderOfActivation, OrderOfActivation.Count - indexOfShipInOrderOfActivation))
+            {
+                VirtualBoard.GetShipInterface(item).RemoveCollisions();
+            }
+
+            yield return BatchedPredicitionHelper.Calculate(
+                ship,
+                ship.GetManeuvers(),
+                predictionType: MovementPrediction.PredictionType.EndpointInfo);
+            Dictionary<string, MovementPrediction> finalPredictions = BatchedPredicitionHelper.Predictions;
+
+            VirtualBoard.ReturnAllCollisions();
+
+            PredictBestManeuverForShip(ship, a => finalPredictions[a], CallNavigationResultCalculateInRoundTwo);
+        }
+
+        private static IEnumerator PredictBestManeuverForShipRoundThree(GenericShip ship)
         {
             if (ship.Owner == CurrentPlayer)
             {
@@ -203,7 +228,7 @@ namespace AI.Aggressor
 
             VirtualBoard.ReturnAllCollisions();
 
-            PredictBestManeuverForShip(ship, a => finalPredictions[a], navigationResultPriorityCalculator);
+            PredictBestManeuverForShip(ship, a => finalPredictions[a], CallNavigationResultCalculate);
         }
 
         /// <summary>
@@ -371,7 +396,7 @@ namespace AI.Aggressor
                 string orderOfActivationText = "Order of activation chosen: ";
                 foreach (GenericShip ship in orderOfActivation)
                 {
-                    orderOfActivationText += (ship.ShipId + ", ");
+                    orderOfActivationText += ship.ShipId + ", ";
                 }
 
                 DebugManager.AiPlanningLog.Add(orderOfActivationText);

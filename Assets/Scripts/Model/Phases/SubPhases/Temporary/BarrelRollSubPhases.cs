@@ -575,9 +575,9 @@ namespace SubPhases
             }
         }
 
-        protected class BarrelRollDirectionDecisionSubPhase : DecisionSubPhase { }
+        public class BarrelRollDirectionDecisionSubPhase : DecisionSubPhase { }
 
-        protected class BarrelRollPositionDecisionSubPhase : DecisionSubPhase { }
+        public class BarrelRollPositionDecisionSubPhase : DecisionSubPhase { }
 
         public void WhenCancelBarrelRollWithProblems(List<ActionFailReason> barrelRollProblems)
         {

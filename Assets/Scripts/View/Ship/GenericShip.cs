@@ -361,6 +361,17 @@ namespace Ship
             ShipAllParts.Find("ShipBase/ObstaclesHitsDetector").GetComponent<Collider>().enabled = value;
         }
 
+        public bool GetToggleColliders(bool value)
+        {
+            Collider collider1 = ShipAllParts.Find("ShipBase/ShipBaseCollider/ObstaclesStayDetector").GetComponent<Collider>();
+            bool result = collider1.enabled;
+            collider1.enabled = value;
+
+            ShipAllParts.Find("ShipBase/ObstaclesHitsDetector").GetComponent<Collider>().enabled = value;
+
+            return result;
+        }
+
         public void SetActive(bool argument)
         {
             Model.SetActive(argument);

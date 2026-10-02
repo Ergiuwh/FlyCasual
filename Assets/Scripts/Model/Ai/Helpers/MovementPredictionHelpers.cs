@@ -7,7 +7,6 @@ using AI.Helpers.Types;
 using Movement;
 using Ship;
 
-
 namespace AI.Helpers.Navigation.PredictionHelpers {
     public static class SingleMovementPredictionHelper
     {
@@ -83,14 +82,18 @@ namespace AI.Helpers.Navigation.PredictionHelpers {
     {
         public static Dictionary<string, MovementPrediction> Predictions = new();
 
-        public static IEnumerator Calculate(GenericShip ship, Dictionary<string, MovementComplexity> maneuvers)
+        public static IEnumerator Calculate(
+            GenericShip ship,
+            Dictionary<string, MovementComplexity> maneuvers,
+            bool isSimple = true,
+            MovementPrediction.PredictionType predictionType = MovementPrediction.PredictionType.FullInfo)
         {
-            Predictions.Clear();
+            Predictions = new();
 
             foreach (KeyValuePair<string, MovementComplexity> maneuver in maneuvers)
             {
-                GenericMovement movement = NavFunctions.CreateMovement(ship, maneuver.Key, complexity: maneuver.Value);
-                MovementPrediction prediction = new(ship, movement, MovementPrediction.PredictionType.FullInfo);
+                GenericMovement movement = NavFunctions.CreateMovement(ship, maneuver.Key, isSimple: isSimple, complexity: maneuver.Value);
+                MovementPrediction prediction = new(ship, movement, predictionType);
 
                 Predictions.Add(maneuver.Key, prediction);
             }
@@ -98,14 +101,18 @@ namespace AI.Helpers.Navigation.PredictionHelpers {
             return MovementPredictionBatchManager.CalculatePredictions(ship, Predictions.Values.ToList());
         }
 
-        public static IEnumerator Calculate(GenericShip ship, List<Maneuver> maneuvers)
+        public static IEnumerator Calculate(
+            GenericShip ship,
+            List<Maneuver> maneuvers,
+            bool isSimple = true,
+            MovementPrediction.PredictionType predictionType = MovementPrediction.PredictionType.FullInfo)
         {
-            Predictions.Clear();
+            Predictions = new();
 
             foreach (Maneuver maneuver in maneuvers)
             {
-                GenericMovement movement = NavFunctions.CreateMovement(ship, maneuver);
-                MovementPrediction prediction = new(ship, movement, MovementPrediction.PredictionType.FullInfo);
+                GenericMovement movement = NavFunctions.CreateMovement(ship, maneuver, isSimple: isSimple);
+                MovementPrediction prediction = new(ship, movement, predictionType);
 
                 Predictions.Add(maneuver.ToString(), prediction);
             }
@@ -113,13 +120,16 @@ namespace AI.Helpers.Navigation.PredictionHelpers {
             return MovementPredictionBatchManager.CalculatePredictions(ship, Predictions.Values.ToList());
         }
 
-        public static IEnumerator Calculate(GenericShip ship, Dictionary<string, GenericMovement> movements)
+        public static IEnumerator Calculate(
+            GenericShip ship,
+            Dictionary<string, GenericMovement> movements,
+            MovementPrediction.PredictionType predictionType = MovementPrediction.PredictionType.FullInfo)
         {
-            Predictions.Clear();
+            Predictions = new();
 
             foreach (KeyValuePair<string, GenericMovement> movement in movements)
             {
-                MovementPrediction prediction = new(ship, movement.Value, MovementPrediction.PredictionType.FullInfo);
+                MovementPrediction prediction = new(ship, movement.Value, predictionType);
 
                 Predictions.Add(movement.Key, prediction);
             }

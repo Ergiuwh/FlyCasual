@@ -43,11 +43,11 @@ namespace Movement
 
         public IEnumerator CalculateMovementPredicition()
         {
-            Ship.ToggleColliders(false);
+            bool savedColliderState = Ship.GetToggleColliders(false);
             GenerateShipStands();
             yield return new WaitForFixedUpdate();
             GetResults();
-            Ship.ToggleColliders(true);
+            Ship.ToggleColliders(savedColliderState);
             PerformCleanup();
         }
 
@@ -263,10 +263,10 @@ namespace Movement
         // Calculation of only final position
         public void CalculateOnlyFinalPositionIgnoringCollisions()
         {
-            Ship.ToggleColliders(false);
+            bool savedColliderState = Ship.GetToggleColliders(false);
             GenerateFinalShipStand();
             // TODO: GET FINAL POSITION
-            Ship.ToggleColliders(true);
+            Ship.ToggleColliders(savedColliderState);
             PerformCleanup();
         }
 
@@ -287,11 +287,11 @@ namespace Movement
 
         public IEnumerator CalculateResultsAtFinalPosition()
         {
-            Ship.ToggleColliders(false);
+            bool savedColliderState = Ship.GetToggleColliders(false);
             GenerateFinalShipStand();
             yield return new WaitForFixedUpdate();
             GetResultsFromFinalPosition();
-            Ship.ToggleColliders(true);
+            Ship.ToggleColliders(savedColliderState);
             PerformCleanup();
         }
 

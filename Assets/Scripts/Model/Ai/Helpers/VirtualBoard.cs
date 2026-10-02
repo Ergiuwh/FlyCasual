@@ -240,10 +240,7 @@ namespace AI.Helpers.Navigation
             {
                 if (!CollisionsRemoved)
                 {
-                    Vector3 savedModelPosition = thisShip.GetShipAllPartsTransform().position;
-
-                    thisShip.SetPosition(thisShip.GetPosition() - new Vector3(0, -100, 0));
-                    thisShip.GetShipAllPartsTransform().position = savedModelPosition;
+                    thisShip.ToggleColliders(false);
 
                     CollisionsRemoved = true;
                 }
@@ -253,10 +250,7 @@ namespace AI.Helpers.Navigation
             {
                 if (CollisionsRemoved)
                 {
-                    Vector3 savedModelPosition = thisShip.GetShipAllPartsTransform().position;
-
-                    thisShip.SetPosition(thisShip.GetPosition() - new Vector3(0, +100, 0));
-                    thisShip.GetShipAllPartsTransform().position = savedModelPosition;
+                    thisShip.ToggleColliders(true);
 
                     CollisionsRemoved = false;
                 }

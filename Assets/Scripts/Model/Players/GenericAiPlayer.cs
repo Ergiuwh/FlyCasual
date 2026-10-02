@@ -27,11 +27,18 @@ namespace Players
 
         private List<GenericShip> ShipsWithoutManeuverAssignCommandSent;
 
+        private BarrelRollPlanInfo? CurrentBarrelRollPlan;
+
+        private static readonly string[] BarrelRollPositions = new string[3] { "Forward", "Center", "Backwards" };
+        
+        private List<string> BarrelRollPositionsToTry;
+
         public GenericAiPlayer() : base()
         {
             PlayerType = PlayerType.Ai;
             Name = "AI";
             ShipsWithoutManeuverAssignCommandSent = new();
+            BarrelRollPositionsToTry = new();
         }
 
         public override void SetupShip()
@@ -500,6 +507,7 @@ namespace Players
             }
         }
 
+#nullable disable warnings
         public override void SelectShipForAbility()
         {
             base.SelectShipForAbility();
@@ -510,9 +518,7 @@ namespace Players
             }
             else
             {
-#nullable disable warnings
                 (Phases.CurrentSubPhase as SelectShipSubPhase).AiSelectPrioritizedTarget();
-#nullable enable
             }
         }
 
@@ -520,22 +526,13 @@ namespace Players
         {
             base.SelectShipsForAbility();
 
-#nullable disable warnings
             (Phases.CurrentSubPhase as MultiSelectionSubphase).AiSelectPrioritizedTarget();
-#nullable enable
-        }
-
-        public override void RerollManagerIsPrepared()
-        {
-            base.RerollManagerIsPrepared();
-            DiceRerollManager.CurrentDiceRerollManager.ConfirmRerollButtonIsPressed();
         }
 
         public override void PlaceObstacle()
         {
             base.PlaceObstacle();
 
-#nullable disable warnings
             ObstaclesPlacementSubPhase subphase = Phases.CurrentSubPhase as ObstaclesPlacementSubPhase;
             if (subphase.IsRandomSetupSelected[Roster.AnotherPlayer(this.PlayerNo)] || DebugManager.BatchAiSquadTestingModeActive)
             {
@@ -549,7 +546,13 @@ namespace Players
                     Messages.ShowInfo("The AI has placed an obstacle");
                 });
             }
+        }
 #nullable enable
+
+        public override void RerollManagerIsPrepared()
+        {
+            base.RerollManagerIsPrepared();
+            DiceRerollManager.CurrentDiceRerollManager.ConfirmRerollButtonIsPressed();
         }
 
         public override void PerformSystemsActivation()
@@ -586,15 +589,14 @@ namespace Players
             GameMode.CurrentGameMode.ExecuteCommand(DiceRoll.GenerateSyncDiceCommand());
         }
 
+#nullable disable warnings
         public override void TakeDecision()
         {
-#nullable disable warnings
             DecisionSubPhase subphase = (Phases.CurrentSubPhase as DecisionSubPhase);
 
             if (subphase.IsForced)
             {
                 (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
-#nullable enable
             }
             else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
@@ -612,12 +614,19 @@ namespace Players
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
-                PerformAction(SelectActionToPerformFromList(Selection.ThisShip.GetAvailableActions()));
+                PerformAction(SelectActionToPerformFromList(Selection.ThisShip.GetAvailableFreeActions()));
             }
-#nullable disable warnings
+            else if (Phases.CurrentSubPhase is BarrelRollPlanningSubPhase.BarrelRollDirectionDecisionSubPhase)
+            {
+                PerformDecision(SelectBarrelRollTemplate((Phases.CurrentSubPhase as DecisionSubPhase).GetDecisions().Select(a => a.Name).ToList()));
+            }
+            else if (Phases.CurrentSubPhase is BarrelRollPlanningSubPhase.BarrelRollPositionDecisionSubPhase)
+            {
+                PerformDecision(SelectBarrelRollPosition());
+            }
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
-#nullable enable
         }
+#nullable enable
 
         protected void PerformAction(GenericAction? action)
         {
@@ -638,9 +647,71 @@ namespace Players
             }
         }
 
+        protected void PerformDecision(string? name)
+        {
+            if (name == null)
+            {
+                GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateSkipButtonCommand());
+            }
+            else
+            {
+                JSONObject parameters = new();
+                parameters.AddField("name", name);
+                GameController.SendCommand(
+                    GameCommandTypes.Decision,
+                    Phases.CurrentSubPhase.GetType(),
+                    Phases.CurrentSubPhase.ID,
+                    parameters.ToString()
+                );
+            }
+        }
+
         protected virtual GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList)
         {
             return null;
+        }
+
+        protected string SelectBarrelRollTemplate(List<string> availableBarrelRollTemplates)
+        {
+            BarrelRollPositionsToTry = new(BarrelRollPositions);
+
+            CurrentBarrelRollPlan = SelectBarrelRollPlan(CreatePossibleBarrelRollPlans(availableBarrelRollTemplates));
+            return CurrentBarrelRollPlan?.Template ?? throw new Exception();
+        }
+
+        protected string SelectBarrelRollPosition()
+        {
+            if (CurrentBarrelRollPlan is not null)
+            {
+                string position = CurrentBarrelRollPlan?.Position ?? throw new Exception();
+                CurrentBarrelRollPlan = null;
+                return position;
+            }
+            else
+            {
+                string position = BarrelRollPositionsToTry.Last();
+                BarrelRollPositionsToTry.RemoveAt(BarrelRollPositionsToTry.Count - 1);
+                return position;
+            }
+        }
+
+        protected List<BarrelRollPlanInfo> CreatePossibleBarrelRollPlans(List<string> availableBarrelRollTemplates)
+        {
+            List<BarrelRollPlanInfo> result = new();
+            foreach (string template in availableBarrelRollTemplates)
+            {
+                foreach (string position in BarrelRollPositions)
+                {
+                    result.Add(new BarrelRollPlanInfo(template, position));
+                }
+            }
+
+            return result;
+        }
+
+        protected virtual BarrelRollPlanInfo SelectBarrelRollPlan(List<BarrelRollPlanInfo> availableBarrelRollPlans)
+        {
+            return availableBarrelRollPlans.First();
         }
 
         public override void SyncDiceRerollSelected()
@@ -700,5 +771,18 @@ namespace Players
         {
             GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
         }
+
+        protected struct BarrelRollPlanInfo
+        {
+            public string Template;
+            public string Position;
+
+            public BarrelRollPlanInfo(string template, string position)
+            {
+                Template = template;
+                Position = position;
+            }
+        }
+
     }
 }
