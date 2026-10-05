@@ -1,5 +1,6 @@
 #nullable enable
 
+using BoardTools;
 using Movement;
 using Ship;
 
@@ -59,6 +60,14 @@ namespace AI.Helpers.Types
             complexity = maneuverHolder.ColorComplexity;
         }
 
+        public Maneuver(ManeuverTemplate maneuverTemplate, MovementComplexity complexity = MovementComplexity.None)
+        {
+            speed = maneuverTemplate.Speed;
+            direction = maneuverTemplate.Direction;
+            bearing = maneuverTemplate.Bearing;
+            this.complexity = complexity;
+        }
+
         public override string ToString()
         {
             return this.ToManeuverHolder().ToString();
@@ -97,6 +106,11 @@ namespace AI.Helpers.Types
         public readonly Movement.MovementComplexity GetComplexity()
         {
             return complexity;
+        }
+
+        public ManeuverTemplate ToManeuverTemplate(bool isSideTemplate = false, bool isBombTemplate = false)
+        {
+            return new ManeuverTemplate(bearing, direction, speed, isBombTemplate, isSideTemplate);
         }
     }
 }

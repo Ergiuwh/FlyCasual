@@ -314,7 +314,6 @@ namespace Movement
             }
         }
 
-
         public static class ExposedInternals
         {
             public static void GenerateShipStands(MovementPrediction prediction)

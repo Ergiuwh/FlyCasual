@@ -37,6 +37,8 @@ namespace Players
         {
             if (Selection.ThisShip is null ) { throw new Exception(); }
 
+            DebugManager.AiPlanningLog.OpenNewGroup($"Action decision for {Selection.ThisShip}");
+
             Dictionary<GenericAction, int> actionsPriority = new();
 
             GenericShip ship = Selection.ThisShip;
@@ -48,13 +50,12 @@ namespace Players
                 ship.CallOnCheckActionComplexity(action, ref action.Color);
                 ship.CallOnCheckActionColor(action, ref action.Color);
 
-                int priority = action.GetActionPriority();
-                if (priority == -1)
+                int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan);
+                if (priority == int.MinValue)
                 {
                     continue;
                 }
 
-                NavigationSubSystem.ModifyActionPriority(action, ref priority);
                 ship.Ai.CallGetActionPriority(action, ref priority);
 
                 // De-prioritize red actions unless overriden
@@ -65,6 +66,7 @@ namespace Players
                     priority += redActionPriorityModifier;
                 }
 
+                DebugManager.AiPlanningLog.Add($"{action.Name} -> {priority}");
                 actionsPriority.Add(action, priority);
             }
 
@@ -77,10 +79,14 @@ namespace Players
 
                 if (prioritizedAction.Value > 0)
                 {
+                    DebugManager.AiPlanningLog.Add($"Selected action {prioritizedAction.Key}");
+                    DebugManager.AiPlanningLog.CloseGroup();
                     return prioritizedAction.Key;
                 }
             }
-
+            
+            DebugManager.AiPlanningLog.Add("Selected to skip action.");
+            DebugManager.AiPlanningLog.CloseGroup();
             return null;
         }
 
@@ -117,6 +123,11 @@ namespace Players
                 options,
                 Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.")
                 );
+        }
+
+        protected override bool DoCalculateBarrelRollResults()
+        {
+            return true;
         }
     }
 }

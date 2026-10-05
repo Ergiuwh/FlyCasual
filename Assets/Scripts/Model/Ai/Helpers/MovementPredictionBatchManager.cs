@@ -35,7 +35,7 @@ namespace AI.Helpers.Navigation.PredictionHelpers
                             MovementPrediction.ExposedInternals.GenerateFinalShipStand(prediction);
                             break;
                         default:
-                            Console.Write("MovementPredictionBatchManager: Calculate included unsupported predicition type.", true, "yellow");
+                            Console.Write("MovementPredictionBatchManager: Calculate included unsupported predicition type.", false, "yellow");
                             break;
                     }
                 }

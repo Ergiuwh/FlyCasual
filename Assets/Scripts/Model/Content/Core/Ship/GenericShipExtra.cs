@@ -355,7 +355,7 @@ namespace Ship
         public int GetAIStressPriority()
         {
             /*
-             * Default value for a ship is -50 + the number of blue maneuvers on its dial.
+             * Default value for a ship is -20 + the number of blue maneuvers on its dial.
              * 
              * 100 - Always wants more stress tokens
              * 90 - Wants to have multiple stress tokens (Ten Numb)
@@ -366,7 +366,7 @@ namespace Ship
              */
 
             var blueManeuverCount = this.Maneuvers.Values.Count(m => m == Movement.MovementComplexity.Easy);
-            var result = -50 + blueManeuverCount; 
+            var result = -20 + blueManeuverCount; 
 
             if (OnModifyAIStressPriority != null) OnModifyAIStressPriority(this, ref result);
 
@@ -480,6 +480,18 @@ namespace Ship
             bool canUseForceNow = true;
             OnCheckCanUseForceNow?.Invoke(ref canUseForceNow);
             return canUseForceNow;
+        }
+
+        public override string ToString()
+        {
+            if (PilotInfo.PilotTitle == "")
+            {
+                return $"{PilotInfo.PilotName} (#{ShipId})";
+            }
+            else
+            {
+                return $"{PilotInfo.PilotName} - {PilotInfo.PilotTitle} (#{ShipId})";
+            }
         }
     }
 

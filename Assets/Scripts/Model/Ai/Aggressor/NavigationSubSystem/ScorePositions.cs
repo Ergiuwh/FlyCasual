@@ -1,6 +1,8 @@
 #nullable enable
 
 using System;
+using AI.Aggressor.Internal;
+using Ship;
 using UnityEngine;
 
 namespace AI.Aggressor.Internal
@@ -67,6 +69,37 @@ namespace AI.Aggressor.Internal
 
             if (enemiesInShotRange > 0) result += "enemiesToShoot:" + enemiesInShotRange + " ";
             if (enemiesWithThisAsOnlyTarget > 0) result += "timesShot:" + enemiesWithThisAsOnlyTarget + " ";
+
+            return result;
+        }
+    }
+}
+
+namespace AI.Aggressor
+{
+    public class PositionResult : PositionScoreInfoInternal
+    {
+        public static PositionResult NewNoCollision(GenericShip ship)
+        {
+            NavigationSubSystem.CheckNextTurn(ship, out bool isOffTheBoardNextTurn);
+            NavigationSubSystem.ProcessHeavyGeometryCalculations(
+                ship,
+                out float minDistanceToEnemyShip,
+                out float minDistanceToNearestEnemyInShotRange,
+                out float minAngle,
+                out int enemiesInShotRange);
+
+            PositionResult result = new()
+            {
+                isOffTheBoard = false,
+                isLandedOnObstacle = false,
+                isOffTheBoardNextTurn = isOffTheBoardNextTurn,
+                angleToNearestEnemy = minAngle,
+                distanceToNearestEnemy = minDistanceToEnemyShip,
+                distanceToNearestEnemyInShotRange = minDistanceToNearestEnemyInShotRange,
+                enemiesInShotRange = enemiesInShotRange,
+                enemiesWithThisAsOnlyTarget = ship.Owner.Ships.Count > 1 ? NavigationSubSystem.CountEnemiesWithThisAsOnlyTarget(ship) : 0
+            };
 
             return result;
         }

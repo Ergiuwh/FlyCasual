@@ -195,5 +195,10 @@ namespace BoardTools
                 return false;
             }
         }
+
+        public void ToggleRenderer(bool value)
+        {
+            TemplateGO.GetComponentInChildren<Renderer>().enabled = value;
+        }
     }
 }

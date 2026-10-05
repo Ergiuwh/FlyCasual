@@ -156,7 +156,7 @@ namespace ActionsList
 
         public virtual int GetActionPriority()
         {
-            int result = -1;
+            int result = int.MinValue;
 
             /*
             * 100 - Rotate arc to get a shot in no enemies in arc
@@ -166,7 +166,7 @@ namespace ActionsList
             * 25 - Reinforce action if there are no enemies
             * 20 - Focus action if no target
             * 10 - Focus action if Expertise is installed
-            * -1 - The ai cannot / may not correctly perform this action
+            * int.MinValue - The ai cannot / may not correctly perform this action
             */
 
             return result;

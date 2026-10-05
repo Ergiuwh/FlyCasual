@@ -465,6 +465,11 @@ namespace AI.Helpers.Navigation
                 return this;
             }
 
+            public bool HasCollisions()
+            {
+                return !ShipInfo.CollisionsRemoved;
+            }
+
             /// <summary>
             /// If this board is active, automatically apply the new position.
             /// </summary>

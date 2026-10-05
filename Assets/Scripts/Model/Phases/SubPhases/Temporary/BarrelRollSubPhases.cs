@@ -216,6 +216,18 @@ namespace SubPhases
             selectBarrelRollTemplate.Start();
         }
 
+        public static string NameTemplateOption(ManeuverTemplate template, Direction primaryDirection, Direction secondaryDirection = Direction.None)
+        {
+            if (secondaryDirection == Direction.None)
+            {
+                return $"{primaryDirection} {template.NameNoDirection}";
+            }
+            else
+            {
+                return $"{primaryDirection} {template.NameNoDirection} {secondaryDirection}";
+            }
+        }
+
         protected virtual void GenerateSelectTemplateDecisions(DecisionSubPhase subphase)
         {
             // Straight templates
@@ -224,7 +236,7 @@ namespace SubPhases
                 if (template.Bearing == ManeuverBearing.Straight)
                 {
                     subphase.AddDecision(
-                        "Left " + template.NameNoDirection,
+                        NameTemplateOption(template, Direction.Left),
                         (EventHandler)delegate
                         {
                             SelectTemplate(template, Direction.Left);
@@ -233,7 +245,7 @@ namespace SubPhases
                     );
 
                     subphase.AddDecision(
-                        "Right " + template.NameNoDirection,
+                        NameTemplateOption(template, Direction.Right),
                         (EventHandler)delegate
                         {
                             SelectTemplate(template, Direction.Right);
@@ -250,7 +262,7 @@ namespace SubPhases
             if (bankLeft != null && bankRight != null)
             {
                 subphase.AddDecision(
-                    "Left " + bankRight.NameNoDirection + " Forward",
+                    NameTemplateOption(bankRight, Direction.Left, Direction.Top),
                     (EventHandler)delegate
                     {
                         SelectTemplate(bankRight, Direction.Left, Direction.Top);
@@ -259,7 +271,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Right " + bankLeft.NameNoDirection + " Forward",
+                    NameTemplateOption(bankLeft, Direction.Right, Direction.Top),
                     (EventHandler)delegate
                     {
                         SelectTemplate(bankLeft, Direction.Right, Direction.Top);
@@ -268,7 +280,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Left " + bankLeft.NameNoDirection + " Backwards",
+                    NameTemplateOption(bankLeft, Direction.Left, Direction.Bottom),
                     (EventHandler)delegate
                     {
                         SelectTemplate(bankLeft, Direction.Left, Direction.Bottom);
@@ -277,7 +289,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Right " + bankRight.NameNoDirection + " Backwards",
+                    NameTemplateOption(bankRight, Direction.Right, Direction.Bottom),
                     (EventHandler)delegate
                     {
                         SelectTemplate(bankRight, Direction.Right, Direction.Bottom);
@@ -293,7 +305,7 @@ namespace SubPhases
             if (turnLeft != null && turnRight != null)
             {
                 subphase.AddDecision(
-                    "Left " + turnRight.NameNoDirection + " Forward",
+                    NameTemplateOption(turnRight, Direction.Left, Direction.Top),
                     (EventHandler)delegate
                     {
                         SelectTemplate(turnRight, Direction.Left, Direction.Top);
@@ -302,7 +314,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Right " + turnLeft.NameNoDirection + " Forward",
+                    NameTemplateOption(turnLeft, Direction.Right, Direction.Top),
                     (EventHandler)delegate
                     {
                         SelectTemplate(turnLeft, Direction.Right, Direction.Top);
@@ -311,7 +323,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Left " + turnLeft.NameNoDirection + " Backwards",
+                    NameTemplateOption(turnLeft, Direction.Left, Direction.Bottom),
                     (EventHandler)delegate
                     {
                         SelectTemplate(turnLeft, Direction.Left, Direction.Bottom);
@@ -320,7 +332,7 @@ namespace SubPhases
                 );
 
                 subphase.AddDecision(
-                    "Right " + turnRight.NameNoDirection + " Backwards",
+                    NameTemplateOption(turnRight, Direction.Right, Direction.Bottom),
                     (EventHandler)delegate
                     {
                         SelectTemplate(turnRight, Direction.Right, Direction.Bottom);
@@ -404,26 +416,36 @@ namespace SubPhases
             yield return Tools.WaitForFrames(3);
         }
 
-        private bool IsColliderDataAllowed(ObstaclesStayDetectorForced collider, bool isBaseFinalPosition = false)
+        private static bool IsColliderDataAllowed(ObstaclesStayDetectorForced collider, GenericShip ship, bool isBaseFinalPosition, List<ActionFailReason> problems, bool isIgnoreObstacles)
         {
             if (collider.OverlapsShipNow && isBaseFinalPosition)
             {
-                BarrelRollProblems.Add(ActionFailReason.Bumped);
+                problems.Add(ActionFailReason.Bumped);
             }
-            else if (!TheShip.IsIgnoreObstacles
-                && !TheShip.IsIgnoreObstaclesDuringBarrelRoll()
-                && !IsIgnoreObstacles
+            else if (!ship.IsIgnoreObstacles
+                && !ship.IsIgnoreObstaclesDuringBarrelRoll()
+                && !isIgnoreObstacles
                 && collider.OverlapsAsteroidNow
-                && !TheShip.IgnoreObstacleTypes.Contains(typeof(Asteroid)))
+                && !ship.IgnoreObstacleTypes.Contains(typeof(Asteroid)))
             {
-                BarrelRollProblems.Add(ActionFailReason.ObstacleHit);
+                problems.Add(ActionFailReason.ObstacleHit);
             }
             else if (collider.OffTheBoardNow)
             {
-                BarrelRollProblems.Add(ActionFailReason.OffTheBoard);
+                problems.Add(ActionFailReason.OffTheBoard);
             }
 
-            return BarrelRollProblems.Count == 0;
+            return problems.Count == 0;
+        }
+
+        private bool IsColliderDataAllowed(ObstaclesStayDetectorForced collider, bool isBaseFinalPosition = false)
+        {
+            return IsColliderDataAllowed(collider, TheShip, isBaseFinalPosition, BarrelRollProblems, IsIgnoreObstacles);
+        }
+
+        public static bool IsColliderDataAllowed(ObstaclesStayDetectorForced collider, GenericShip ship, bool isBaseFinalPosition, bool isIgnoreObstacles)
+        {
+            return IsColliderDataAllowed(collider, ship, isBaseFinalPosition, new List<ActionFailReason>(), isIgnoreObstacles);
         }
 
         private IEnumerator CheckPotentialFinalPositions()
@@ -523,41 +545,51 @@ namespace SubPhases
             );
         }
 
-        private GameObject ShowTemporaryShipBase(Direction shiftDirection, bool isVisible = true)
+        public static ShipPositionInfo FinalPositionInfo(GenericShipBase shipBase, ManeuverTemplate template, Direction PrimaryDirection, Direction shiftDirection)
         {
-            GameObject prefab = (GameObject)Resources.Load(TheShip.ShipBase.TemporaryPrefabPath, typeof(GameObject));
-            GameObject temporaryShipBase = MonoBehaviour.Instantiate(
-                prefab,
-                SelectedTemplate.GetFinalPosition(),
-                SelectedTemplate.GetFinalRotation(),
-                Board.GetBoard()
-            );
+            Vector3 finalPositon = template.GetFinalPosition();
+            Quaternion finalRotation = template.GetFinalRotation();
 
-            int directionModifier = (SelectedDirectionPrimary == Direction.Left) ? -1 : 1;
+            int directionModifier = (PrimaryDirection == Direction.Left) ? -1 : 1;
 
             float finalShift = 0;
             switch (shiftDirection)
             {
                 case Direction.Top:
-                    finalShift += (SelectedTemplate.IsSideTemplate) ? 0.5f : 0.25f;
+                    finalShift += (template.IsSideTemplate) ? 0.5f : 0.25f;
                     break;
                 case Direction.Bottom:
-                    finalShift -= (SelectedTemplate.IsSideTemplate) ? 0.5f : 0.25f;
+                    finalShift -= (template.IsSideTemplate) ? 0.5f : 0.25f;
                     break;
                 default:
                     break;
             }
 
-            temporaryShipBase.transform.localEulerAngles += new Vector3(0, directionModifier * -90, 0);
+            finalRotation *= Quaternion.AngleAxis(directionModifier * -90, Vector3.up);
 
             Vector3 shift = new(
-                directionModifier * TheShip.ShipBase.HALF_OF_SHIPSTAND_SIZE,
+                directionModifier * shipBase.HALF_OF_SHIPSTAND_SIZE,
                 0,
-                TheShip.ShipBase.HALF_OF_SHIPSTAND_SIZE + finalShift
+                shipBase.HALF_OF_SHIPSTAND_SIZE + finalShift
             );
-            Vector3 absPosition = temporaryShipBase.transform.TransformPoint(shift);
 
-            temporaryShipBase.transform.position = absPosition;
+            Vector3 absPosition = finalPositon + finalRotation * shift * Board.BoardIntoWorld(Board.DISTANCE_1);
+
+            return new ShipPositionInfo(absPosition, finalRotation.eulerAngles);
+        }
+
+        private GameObject ShowTemporaryShipBase(Direction shiftDirection, bool isVisible = true)
+        {
+            ShipPositionInfo finalPositionInfo = FinalPositionInfo(TheShip.ShipBase, SelectedTemplate, SelectedDirectionPrimary, shiftDirection);
+
+
+            GameObject prefab = Resources.Load<GameObject>(TheShip.ShipBase.TemporaryPrefabPath);
+            GameObject temporaryShipBase = MonoBehaviour.Instantiate(
+                prefab,
+                Board.GetBoard()
+            );
+            temporaryShipBase.transform.position = finalPositionInfo.Position;
+            temporaryShipBase.transform.eulerAngles = finalPositionInfo.Angles;
 
             temporaryShipBase.transform.Find("ShipBase").Find("ShipStandInsert").Find("ShipStandInsertImage").Find("default").GetComponent<Renderer>().material = TheShip.Model.transform.Find("RotationHelper").Find("RotationHelper2").Find("ShipAllParts").Find("ShipBase").Find("ShipStandInsert").Find("ShipStandInsertImage").Find("default").GetComponent<Renderer>().material;
             temporaryShipBase.transform.Find("ShipBase").Find("ObstaclesStayDetector").gameObject.AddComponent<ObstaclesStayDetectorForced>();
