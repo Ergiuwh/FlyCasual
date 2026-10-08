@@ -50,7 +50,7 @@ namespace Players
                 ship.CallOnCheckActionComplexity(action, ref action.Color);
                 ship.CallOnCheckActionColor(action, ref action.Color);
 
-                int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan);
+                int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan, ref CurrentBoostPlan);
                 if (priority == int.MinValue)
                 {
                     continue;
@@ -128,6 +128,36 @@ namespace Players
         protected override bool DoCalculateBarrelRollResults()
         {
             return true;
+        }
+
+        protected override bool DoCalculateBoostResults()
+        {
+            return true;
+        }
+    }
+
+    public class AggressorAiPlayerQuick : GenericAiPlayer
+    {
+        public bool DoRepositionActions;
+        public AggressorAiPlayerQuick() : base()
+        {
+            Name = "Aggressor AI (quick)";
+            DoRepositionActions = false;
+        }
+
+        protected override void DoPlanningInPlanningPhase(Action callback)
+        {
+            NavigationSubSystem.CalculateNavigationQuick(callback);
+        }
+
+        protected override bool DoCalculateBarrelRollResults()
+        {
+            return DoRepositionActions;
+        }
+
+        protected override bool DoCalculateBoostResults()
+        {
+            return DoRepositionActions;
         }
     }
 }

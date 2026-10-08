@@ -2,7 +2,9 @@
 // parts of this file have nullable warnings disabled.
 
 using ActionsList;
+using AI.Helpers.Navigation;
 using AI.Helpers.Types;
+using AI.Helpers.Types.Actions;
 using BoardTools;
 using GameCommands;
 using GameModes;
@@ -29,6 +31,7 @@ namespace Players
         private List<GenericShip> ShipsWithoutManeuverAssignCommandSent;
 
         protected BarrelRollPlanInfo? CurrentBarrelRollPlan;
+        protected BoostPlanInfo? CurrentBoostPlan;
 
         private static readonly string[] BarrelRollPositions = new string[3] { "Forward", "Center", "Backwards" };
         
@@ -599,6 +602,7 @@ namespace Players
             {
                 (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
             }
+            // Actions
             else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
                 if (Selection.ThisShip is null)
@@ -617,6 +621,7 @@ namespace Players
 
                 GameManagerScript.Instance.StartCoroutine(CalculateAndPerformAction(Selection.ThisShip.GetAvailableFreeActions()));
             }
+            // Barrel Rolls
             else if (Phases.CurrentSubPhase is BarrelRollPlanningSubPhase.BarrelRollDirectionDecisionSubPhase)
             {
                 PerformDecision(
@@ -629,12 +634,22 @@ namespace Players
                 PerformDecision(SelectBarrelRollPosition());
                 PerformDecisionNext();
             }
+            // Boosts
+            else if (Phases.CurrentSubPhase is BoostPlanningSubPhase.SelectBoostTemplateDecisionSubPhase)
+            {
+                PerformDecision(
+                    CurrentBoostPlan?.BoostMove.Name ?? (Phases.CurrentSubPhase as DecisionSubPhase).DefaultDecisionName
+                );
+            }
+            //
             else (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
         }
 #nullable enable
 
         protected IEnumerator CalculateAndPerformAction(List<GenericAction> actionsList)
         {
+            SetCalculatingStatus(true);
+
             if (actionsList.Any(a => a is BarrelRollAction) && DoCalculateBarrelRollResults())
             {
                 if (Selection.ThisShip is null)
@@ -665,16 +680,63 @@ namespace Players
 
                 BarrelRollActionWithPlans barrelRollActionWithPlans = new()
                 {
-                    barrelRollPlans = barrelRollPlans
+                    BarrelRollPlans = barrelRollPlans
                 };
                 actionsList[barrelRollActionIndex] = barrelRollActionWithPlans;
             }
 
+            if (actionsList.Any(a => a is BoostAction) && DoCalculateBoostResults())
+            {
+                if (Selection.ThisShip is null)
+                {
+                    throw new Exception();
+                }
+
+                int boostActionIndex = -1;
+                for (int i = 0; i < actionsList.Count; i++)
+                {
+                    if (actionsList[i] is BoostAction)
+                    {
+                        boostActionIndex = i;
+                        break;
+                    }
+                }
+
+                List<BoostMove> boostTemplates = Selection.ThisShip.GetAvailableBoostTemplates(actionsList[boostActionIndex]);
+                
+                List<BoostPlanInfo> boostPlans = boostTemplates.Select(a => new BoostPlanInfo(a)).ToList();
+
+                VirtualBoard<VirtualBoardManager.EmptyClass> virtualBoard = new();
+                virtualBoard.UpdateToReal(a => new());
+                virtualBoard.Activate();
+
+                foreach (BoostPlanInfo boostPlan in boostPlans)
+                {
+                    yield return boostPlan.DoCalculations(Selection.ThisShip);
+                }
+
+                virtualBoard.Deactivate();
+
+                BoostActionWithPlans boostActionWithPlans = new()
+                {
+                    BoostPlans = boostPlans
+                };
+                actionsList[boostActionIndex] = boostActionWithPlans;
+            } 
+
             GenericAction? selectedAction = SelectActionToPerformFromList(actionsList);
+
+            SetCalculatingStatus(false);
+
             PerformDecision(selectedAction?.Name);
         }
 
         protected virtual bool DoCalculateBarrelRollResults()
+        {
+            return false;
+        }
+
+        protected virtual bool DoCalculateBoostResults()
         {
             return false;
         }
@@ -724,7 +786,7 @@ namespace Players
             }
         }
 
-        protected List<BarrelRollPlanInfo> CreatePossibleBarrelRollPlans(List<string> availableBarrelRollTemplates)
+        private List<BarrelRollPlanInfo> CreatePossibleBarrelRollPlans(List<string> availableBarrelRollTemplates)
         {
             List<BarrelRollPlanInfo> result = new();
             foreach (string template in availableBarrelRollTemplates)
@@ -738,7 +800,7 @@ namespace Players
             return result;
         }
 
-        protected List<BarrelRollPlanInfo> CreatePossibleBarrelRollPlans(List<ManeuverTemplate> availableBarrelRollTemplates)
+        private List<BarrelRollPlanInfo> CreatePossibleBarrelRollPlans(List<ManeuverTemplate> availableBarrelRollTemplates)
         {
             List<string> barrelRollOptionStrings = new();
             foreach (ManeuverTemplate maneuverTemplate in availableBarrelRollTemplates)
@@ -824,157 +886,9 @@ namespace Players
             GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
         }
 
-        public class BarrelRollPlanInfo
+        protected void SetCalculatingStatus(bool value)
         {
-            public string TemplateOptionName;
-            private string[] SplitTemplateOptionName
-            {
-                get
-                {
-                    return TemplateOptionName.Split(' ');
-                }
-            }
-            public string PositionOptionName;
-
-            public GenericShip Ship;
-
-            public ShipPositionInfo? FinalPositionInfo;
-
-            public bool IsAllowed;
-
-            public BarrelRollPlanInfo(string template, string position, GenericShip ship)
-            {
-                TemplateOptionName = template;
-                PositionOptionName = position;
-                Ship = ship;
-            }
-
-            public Direction GetDirectionPrimary()
-            {
-                switch (SplitTemplateOptionName.First())
-                {
-                    case "Right": 
-                        return Direction.Right;
-                    case "Left":
-                        return Direction.Left;
-                    default:
-                        Console.Write("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[0] not recognised.", false, "red");
-                        return Direction.None;
-                }
-            }
-
-            public Direction GetDirectionSecondary()
-            {
-                if (SplitTemplateOptionName.Length == 3)
-                {
-                    return Direction.None;
-                }
-                else
-                {
-                    switch (SplitTemplateOptionName[3])
-                    {
-                        case "Forward": 
-                            return Direction.Top;
-                        case "Backwards":
-                            return Direction.Bottom;
-                        default:
-                            Console.Write("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[3] not recognised.", false, "red");
-                            return Direction.None;
-                    }
-                }
-            }
-
-            public Direction GetDirectionShift()
-            {
-                switch (PositionOptionName)
-                {
-                    case "Forward":
-                        return Direction.Top;
-                    case "Center":
-                        return Direction.None;
-                    case "Backwards":
-                        return Direction.Bottom;
-                    default:
-                        Console.Write("GenericAiPlayer.BarrelRollPlanInfo Position not recognised.", false, "red");
-                        return Direction.None;
-                }
-            }
-
-            public Maneuver GetTemplate()
-            {
-                ManeuverBearing bearing;
-                switch (SplitTemplateOptionName[1])
-                {
-                    case "Straight":
-                        bearing = ManeuverBearing.Straight;
-                        break;
-                    case "Bank":
-                        bearing = ManeuverBearing.Bank;
-                        break;
-                    case "Turn":
-                        bearing = ManeuverBearing.Turn;
-                        break;
-                    default:
-                        Console.Write("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[1] not recognised.", false, "red");
-                        bearing = ManeuverBearing.None;
-                        break;
-                }
-
-                ManeuverSpeed speed;
-                switch (SplitTemplateOptionName[2])
-                {
-                    case "1":
-                        speed = ManeuverSpeed.Speed1;
-                        break;
-                    case "2":
-                        speed = ManeuverSpeed.Speed2;
-                        break;
-                    case "3":
-                        speed = ManeuverSpeed.Speed3;
-                        break;
-                    case "4":
-                        speed = ManeuverSpeed.Speed4;
-                        break;
-                    case "5":
-                        speed = ManeuverSpeed.Speed5;
-                        break;
-                    default:
-                        speed = ManeuverSpeed.Speed0;
-                        Console.Write("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[2] not recognised.", false, "red");
-                        break;
-                }
-
-                bool isLeftTemplate = GetDirectionPrimary() == Direction.Left ^ GetDirectionSecondary() == Direction.Top;
-                ManeuverDirection direction = isLeftTemplate ? ManeuverDirection.Left : ManeuverDirection.Right;
-                
-                return new Maneuver(speed, direction, bearing);
-            }
-
-            public IEnumerator DoCalculations()
-            {
-                Maneuver maneuver = GetTemplate();
-                bool isSideTemplate = Ship.ShipBase.Size != BaseSize.Small;
-                ManeuverTemplate template = maneuver.ToManeuverTemplate(isSideTemplate);
-                Direction primaryDirection = GetDirectionPrimary();
-                template.ApplyTemplate(
-                    Ship,
-                    (primaryDirection == Direction.Left) ? Ship.GetLeft() : Ship.GetRight(),
-                    primaryDirection
-                    );
-                template.Collider.TheShip = Ship;
-                template.Collider.ReCheckCollisionsStart();
-                template.ToggleRenderer(false);
-                yield return new WaitForFixedUpdate();
-                IsAllowed = BarrelRollPlanningSubPhase.IsColliderDataAllowed(template.Collider, Ship, true, false);
-                Direction shiftDirection = GetDirectionShift();
-                FinalPositionInfo = BarrelRollPlanningSubPhase.FinalPositionInfo(Ship.ShipBase, template, primaryDirection, shiftDirection);
-                template.DestroyTemplate();
-            }
-        }
-
-        public class BarrelRollActionWithPlans : BarrelRollAction
-        {
-            public List<BarrelRollPlanInfo> barrelRollPlans = new();
+            Roster.ToggleCalculatingStatus(PlayerNo, value);
         }
 
     }

@@ -200,7 +200,7 @@ namespace SubPhases
             selectBoostTemplateDecisionSubPhase.Start();
         }
 
-        private class SelectBoostTemplateDecisionSubPhase : DecisionSubPhase { }
+        public class SelectBoostTemplateDecisionSubPhase : DecisionSubPhase { }
 
         private void SelectTemplate(BoostMove move)
         {

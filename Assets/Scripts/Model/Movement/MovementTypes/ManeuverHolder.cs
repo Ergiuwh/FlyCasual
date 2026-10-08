@@ -168,21 +168,21 @@ namespace Movement
             ship ??= Selection.ThisShip;
 
             if (ship is not null) {
-                shipTag = ship.GetTag();
-
                 Dictionary<string, MovementComplexity> maneuvers = new(ship.Maneuvers);
 
                 ship.CallReadyToGetManeuvers();
                 ship.OnGetManeuvers?.Invoke(maneuvers);
 
-                ColorComplexity = maneuvers[parameters];
-                ColorComplexity = ship.GetColorComplexityOfManeuver(this);
+                if (maneuvers.ContainsKey(parameters)) {
+                    shipTag = ship.GetTag();
+                    ColorComplexity = maneuvers[parameters];
+                    ColorComplexity = ship.GetColorComplexityOfManeuver(this);
+                    return;
+                }
             }
-            else
-            {
-                shipTag = null;
-                ColorComplexity = MovementComplexity.None;
-            }
+
+            shipTag = null;
+            ColorComplexity = MovementComplexity.None;
         }
 
         public void UpdateColorComplexity()

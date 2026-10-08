@@ -1,8 +1,17 @@
 #nullable enable
 
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using ActionsList;
+using AI.Helpers.Navigation;
+using AI.Helpers.Navigation.PredictionHelpers;
 using BoardTools;
 using Movement;
 using Ship;
+using SubPhases;
+using UnityEngine;
 
 namespace AI.Helpers.Types
 {
@@ -68,6 +77,90 @@ namespace AI.Helpers.Types
             this.complexity = complexity;
         }
 
+        public Maneuver(BoostMove boostMove)
+        {
+            switch (boostMove.Template)
+            {
+                case ActionsHolder.BoostTemplates.LeftBank1:
+                case ActionsHolder.BoostTemplates.LeftBank2:
+                case ActionsHolder.BoostTemplates.RightBank1:
+                case ActionsHolder.BoostTemplates.RightBank2:
+                    bearing = ManeuverBearing.Bank;
+                    break;
+                case ActionsHolder.BoostTemplates.LeftTurn1:
+                case ActionsHolder.BoostTemplates.LeftTurn2:
+                case ActionsHolder.BoostTemplates.RightTurn1:
+                case ActionsHolder.BoostTemplates.RightTurn2:
+                    bearing = ManeuverBearing.Turn;
+                    break;
+                case ActionsHolder.BoostTemplates.Straight1:
+                case ActionsHolder.BoostTemplates.Straight2:
+                    bearing = ManeuverBearing.Straight;
+                    break;
+                default:
+                    Console.Write("AI.Helpers.Types.Maneuver new(BoostMove) BoostTemplate not recognised");
+                    bearing = ManeuverBearing.Straight;
+                    break;
+            }
+
+            switch (boostMove.Template)
+            {
+                case ActionsHolder.BoostTemplates.LeftBank1:
+                case ActionsHolder.BoostTemplates.LeftBank2:
+                case ActionsHolder.BoostTemplates.LeftTurn1:
+                case ActionsHolder.BoostTemplates.LeftTurn2:
+                    direction = ManeuverDirection.Left;
+                    break;
+                case ActionsHolder.BoostTemplates.RightBank1:
+                case ActionsHolder.BoostTemplates.RightBank2:
+                case ActionsHolder.BoostTemplates.RightTurn1:
+                case ActionsHolder.BoostTemplates.RightTurn2:
+                    direction = ManeuverDirection.Right;
+                    break;
+                case ActionsHolder.BoostTemplates.Straight1:
+                case ActionsHolder.BoostTemplates.Straight2:
+                    direction = ManeuverDirection.Forward;
+                    break;
+                default:
+                    direction = ManeuverDirection.Forward;
+                    break;
+            }
+
+            switch (boostMove.Template)
+            {
+                case ActionsHolder.BoostTemplates.LeftBank1:
+                case ActionsHolder.BoostTemplates.RightBank1:
+                case ActionsHolder.BoostTemplates.LeftTurn1:
+                case ActionsHolder.BoostTemplates.RightTurn1:
+                case ActionsHolder.BoostTemplates.Straight1:
+                    speed = ManeuverSpeed.Speed1;
+                    break;
+                case ActionsHolder.BoostTemplates.LeftBank2:
+                case ActionsHolder.BoostTemplates.RightBank2:
+                case ActionsHolder.BoostTemplates.LeftTurn2:
+                case ActionsHolder.BoostTemplates.RightTurn2:
+                case ActionsHolder.BoostTemplates.Straight2:
+                    speed = ManeuverSpeed.Speed2;
+                    break;
+                default:
+                    speed = ManeuverSpeed.Speed1;
+                    break;
+            }
+
+            if (boostMove.IsRed)
+            {
+                complexity = MovementComplexity.Complex;
+            }
+            else if (boostMove.IsPurple)
+            {
+                complexity = MovementComplexity.Purple;
+            }
+            else
+            {
+                complexity = MovementComplexity.Normal;
+            }
+        }
+
         public override string ToString()
         {
             return this.ToManeuverHolder().ToString();
@@ -111,6 +204,312 @@ namespace AI.Helpers.Types
         public ManeuverTemplate ToManeuverTemplate(bool isSideTemplate = false, bool isBombTemplate = false)
         {
             return new ManeuverTemplate(bearing, direction, speed, isBombTemplate, isSideTemplate);
+        }
+
+        public static class Quick {
+            public static Maneuver TwoFowardStraight { get; } = new("2.F.S");
+        }
+    }
+}
+
+namespace AI.Helpers.Types.Actions
+{
+    public class BarrelRollPlanInfo
+    {
+        public string TemplateOptionName;
+        private string[] SplitTemplateOptionName
+        {
+            get
+            {
+                return TemplateOptionName.Split(' ');
+            }
+        }
+        public string PositionOptionName;
+
+        public GenericShip Ship;
+
+        public ShipPositionInfo? FinalPositionInfo;
+
+        public bool IsAllowed;
+
+        public BarrelRollPlanInfo(string template, string position, GenericShip ship)
+        {
+            TemplateOptionName = template;
+            PositionOptionName = position;
+            Ship = ship;
+        }
+
+        public Direction GetDirectionPrimary()
+        {
+            switch (SplitTemplateOptionName.First())
+            {
+                case "Right": 
+                    return Direction.Right;
+                case "Left":
+                    return Direction.Left;
+                default:
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[0] not recognised.");
+                    return Direction.None;
+            }
+        }
+
+        public Direction GetDirectionSecondary()
+        {
+            if (SplitTemplateOptionName.Length == 3)
+            {
+                return Direction.None;
+            }
+            else
+            {
+                switch (SplitTemplateOptionName[3])
+                {
+                    case "Forward": 
+                        return Direction.Top;
+                    case "Backwards":
+                        return Direction.Bottom;
+                    default:
+                        ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[3] not recognised.");
+                        return Direction.None;
+                }
+            }
+        }
+
+        public Direction GetDirectionShift()
+        {
+            switch (PositionOptionName)
+            {
+                case "Forward":
+                    return Direction.Top;
+                case "Center":
+                    return Direction.None;
+                case "Backwards":
+                    return Direction.Bottom;
+                default:
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo Position not recognised.");
+                    return Direction.None;
+            }
+        }
+
+        public Maneuver GetTemplate()
+        {
+            ManeuverBearing bearing;
+            switch (SplitTemplateOptionName[1])
+            {
+                case "Straight":
+                    bearing = ManeuverBearing.Straight;
+                    break;
+                case "Bank":
+                    bearing = ManeuverBearing.Bank;
+                    break;
+                case "Turn":
+                    bearing = ManeuverBearing.Turn;
+                    break;
+                default:
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[1] not recognised.");
+                    bearing = ManeuverBearing.None;
+                    break;
+            }
+
+            ManeuverSpeed speed;
+            switch (SplitTemplateOptionName[2])
+            {
+                case "1":
+                    speed = ManeuverSpeed.Speed1;
+                    break;
+                case "2":
+                    speed = ManeuverSpeed.Speed2;
+                    break;
+                case "3":
+                    speed = ManeuverSpeed.Speed3;
+                    break;
+                case "4":
+                    speed = ManeuverSpeed.Speed4;
+                    break;
+                case "5":
+                    speed = ManeuverSpeed.Speed5;
+                    break;
+                default:
+                    speed = ManeuverSpeed.Speed0;
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[2] not recognised.");
+                    break;
+            }
+
+            bool isLeftTemplate = GetDirectionPrimary() == Direction.Left ^ GetDirectionSecondary() == Direction.Top;
+            ManeuverDirection direction = isLeftTemplate ? ManeuverDirection.Left : ManeuverDirection.Right;
+            
+            return new Maneuver(speed, direction, bearing);
+        }
+
+        public IEnumerator DoCalculations()
+        {
+            Maneuver maneuver = GetTemplate();
+            bool isSideTemplate = Ship.ShipBase.Size != BaseSize.Small;
+            ManeuverTemplate template = maneuver.ToManeuverTemplate(isSideTemplate);
+            Direction primaryDirection = GetDirectionPrimary();
+            template.ApplyTemplate(
+                Ship,
+                (primaryDirection == Direction.Left) ? Ship.GetLeft() : Ship.GetRight(),
+                primaryDirection
+                );
+            template.Collider.TheShip = Ship;
+            template.Collider.ReCheckCollisionsStart();
+            template.ToggleRenderer(false);
+            yield return new WaitForFixedUpdate();
+            IsAllowed = BarrelRollPlanningSubPhase.IsColliderDataAllowed(template.Collider, Ship, true, false);
+            Direction shiftDirection = GetDirectionShift();
+            FinalPositionInfo = BarrelRollPlanningSubPhase.FinalPositionInfo(Ship.ShipBase, template, primaryDirection, shiftDirection);
+            template.DestroyTemplate();
+        }
+    }
+
+    public class BarrelRollActionWithPlans : BarrelRollAction
+    {
+        public List<BarrelRollPlanInfo> BarrelRollPlans = new();
+    }
+
+    public class BoostPlanInfo
+    {
+        public BoostMove BoostMove;
+
+        public ShipPositionInfo? FinalPositionInfo;
+
+        public bool IsAllowed;
+
+        public BoostPlanInfo(BoostMove boostMove)
+        {
+            BoostMove = boostMove;
+        }
+
+        public IEnumerator DoCalculations(GenericShip ship)
+        {
+            ShipPositionInfo savedShipPositionInfo = ship.GetPositionInfo();
+
+            Maneuver maneuver = new(BoostMove);
+
+            yield return SingleMovementPredictionHelper.Calculate(ship, maneuver, true);
+            MovementPrediction movementPrediction = SingleMovementPredictionHelper.Prediction;
+
+            IsAllowed = movementPrediction.IsOffTheBoard || movementPrediction.IsBumped || movementPrediction.IsHitOrLandedOnObstacle;
+            FinalPositionInfo = ship.GetPositionInfo();
+
+            ship.SetPositionInfo(savedShipPositionInfo);
+        }
+    }
+
+    public class BoostActionWithPlans : BoostAction
+    {
+        public List<BoostPlanInfo> BoostPlans = new();
+    }
+}
+
+namespace AI.Helpers.Types
+{
+    /// <summary>
+    /// Can be implicitly cast to VirtualBoard&lt;T&gt;.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class ActiveVirtualBoard<T> where T : class
+    {
+        private VirtualBoard<T> internalVirtualBoard;
+        public VirtualBoard<T> VirtualBoard
+        {
+            get
+            {
+                internalVirtualBoard.AssertIsActive();
+                return internalVirtualBoard;
+            }
+        }
+
+        public ActiveVirtualBoard(VirtualBoard<T> virtualBoard)
+        {
+            virtualBoard.AssertIsActive();
+            internalVirtualBoard = virtualBoard;
+        }
+
+        public static implicit operator VirtualBoard<T>(ActiveVirtualBoard<T> activeVirtualBoard)
+        {
+            return activeVirtualBoard.internalVirtualBoard;
+        }
+    }
+}
+
+namespace AI.Helpers.Types
+{
+    public class Result<T,E>
+    {
+        private T? success;
+        private E? error;
+        private bool isSuccess;
+
+        public Result(T successValue)
+        {
+            success = successValue;
+            error = default;
+            isSuccess = true;
+        }
+
+        public Result(E errorValue)
+        {
+            success = default;
+            error = errorValue;
+            isSuccess = true;
+        }
+
+        public bool IsSuccess { get { return isSuccess; } }
+        public bool IsError { get { return !IsSuccess; } }
+        
+        public bool TryGetSuccess([System.Diagnostics.CodeAnalysis.NotNullWhen(returnValue: true)] out T? success)
+        {
+            success = this.success;
+            return IsSuccess;
+        }
+
+        public bool TryGetError([System.Diagnostics.CodeAnalysis.NotNullWhen(returnValue: true)] out E? error)
+        {
+            error = this.error;
+            return IsError;
+        }
+
+        public T SuccessOrException()
+        {
+            if (IsSuccess)
+            {
+                // null forgiving: this.success should not be null when IsSuccess is true.
+                return success!;
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+
+        public E ErrorOrException()
+        {
+            if (IsError)
+            {
+                // null forgiving: this.error should not be null when IsError is true.
+                return error!;
+            }
+            else
+            {
+                throw new Exception();
+            }
+        }
+    }
+}
+
+namespace AI.Helpers.Types
+{
+    public static class ConsoleHelpers
+    {
+        public static void Warn(string value)
+        {
+            Console.Write(value, false, "yellow");
+        }
+
+        public static void Error(string value)
+        {
+            Console.Write(value, true, "red");
         }
     }
 }

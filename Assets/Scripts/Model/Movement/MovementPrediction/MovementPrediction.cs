@@ -26,8 +26,17 @@ namespace Movement
         public List<GenericRemote> RemotesMovedThrough = new();
         public List<GenericShip> ShipsMovedThrough = new();
         public List<GenericObstacle> AsteroidsHit = new();
+        /// <summary>
+        /// Alias of AsteroidsHit.
+        /// </summary>
+        public List<GenericObstacle> ObstaclesHit { get { return AsteroidsHit; } set { AsteroidsHit = value; } }
+        public bool IsHitOrLandedOnObstacle { get { return ObstaclesHit.Count > 0 || IsLandedOnObstacle; } }
         public List<GenericDeviceGameObject> MinesHit = new();
         public bool IsLandedOnAsteroid { get { return LandedOnObstacles.Count > 0; } }
+        /// <summary>
+        /// Alias of IsLandedOnAsteroid.
+        /// </summary>
+        public bool IsLandedOnObstacle { get { return IsLandedOnAsteroid; } }
         public List<GenericObstacle> LandedOnObstacles = new();
 
         private GameObject[] GeneratedShipStands;

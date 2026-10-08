@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using AI.Helpers.Types;
 
 public static partial class DebugManager
 {
@@ -78,7 +79,7 @@ public static partial class DebugManager
                 if (activeNode.Children is null)
                 {
                     // This should never happen.
-                    Console.Write("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup: an error occurred.", true, "red");
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup: an error occurred.");
                     return;
                 }
 
@@ -90,7 +91,7 @@ public static partial class DebugManager
             {
                 if (activePath.Count == 0)
                 {
-                    Console.Write("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup: attempt to close group when none are open.", false, "red");
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup: attempt to close group when none are open.");
                     return;
                 }
 

@@ -40,13 +40,13 @@ namespace AI.Helpers.Navigation
         }
 
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver, bool isSimple) where T : class {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver, bool isSimple = true) where T : class {
             GenericMovement movement = CreateMovement(ship, maneuver, isSimple);
 
             yield return ApplyManeuverOnVirtualBoard(virtualBoard, movement);
         }
 
-        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, string maneuverCode, bool isSimple) where T : class {
+        public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, string maneuverCode, bool isSimple = true) where T : class {
             GenericMovement movement = CreateMovement(ship, maneuverCode, isSimple);
 
             yield return ApplyManeuverOnVirtualBoard(virtualBoard, movement);
@@ -116,11 +116,25 @@ namespace AI.Helpers.Navigation
         /// </summary>
         /// <param name="ship"></param>
         /// <param name="maneuverCode"></param>
+        /// <param name="complexity"></param>
         /// <returns></returns>
-        public static MovementPrediction PredictFinalPosition(GenericShip ship, string maneuverCode)
+        public static MovementPrediction PredictFinalPosition(GenericShip ship, string maneuverCode, MovementComplexity? complexity = null)
         {
             // isSimple is not currently used by CalculateOnlyFinalPositionIgnoringCollisions()
-            GenericMovement movement = CreateMovement(ship, maneuverCode, true);
+            GenericMovement movement = CreateMovement(ship, maneuverCode, true, complexity);
+            return PredictFinalPosition(movement);
+        }
+
+        /// <summary>
+        /// Only calculates FinalPositionInfo and FinalPositionBeforeRotationInfo.
+        /// </summary>
+        /// <param name="ship"></param>
+        /// <param name="maneuver"></param>
+        /// <returns></returns>
+        public static MovementPrediction PredictFinalPosition(GenericShip ship, KeyValuePair<string,MovementComplexity> maneuver)
+        {
+            // isSimple is not currently used by CalculateOnlyFinalPositionIgnoringCollisions()
+            GenericMovement movement = CreateMovement(ship, maneuver.Key, true, maneuver.Value);
             return PredictFinalPosition(movement);
         }
     }

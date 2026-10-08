@@ -2,6 +2,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using AI.Helpers.Types;
 using Movement;
 using Ship;
 using UnityEngine;
@@ -35,7 +36,7 @@ namespace AI.Helpers.Navigation.PredictionHelpers
                             MovementPrediction.ExposedInternals.GenerateFinalShipStand(prediction);
                             break;
                         default:
-                            Console.Write("MovementPredictionBatchManager: Calculate included unsupported predicition type.", false, "yellow");
+                            ConsoleHelpers.Error("MovementPredictionBatchManager: Calculate included unsupported predicition type.");
                             break;
                     }
                 }
@@ -53,7 +54,6 @@ namespace AI.Helpers.Navigation.PredictionHelpers
                             MovementPrediction.ExposedInternals.GetResultsFromFinalPosition(prediction);
                             break;
                         default:
-                            // We have already provided a warning.
                             break;
                     }
 

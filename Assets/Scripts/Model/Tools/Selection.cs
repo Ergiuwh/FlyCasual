@@ -7,19 +7,7 @@ using UnityEngine.EventSystems;
 
 public static class Selection {
 
-    private static GenericShip? thisShip;
-    public static GenericShip? ThisShip
-    {
-        get
-        {
-            return thisShip;
-        }
-        set
-        {
-            Logger.LogSetThisShip(value);
-            thisShip = value;
-        }
-    }
+    public static GenericShip? ThisShip;
     public static GenericShip? AnotherShip;
     public static GenericShip? ActiveShip;
     public static GenericShip? HoveredShip;
@@ -286,23 +274,6 @@ public static class Selection {
         foreach (GenericShip ship in MultiSelectedShips)
         {
             ship.TurnOffMultiSelectionProjector();
-        }
-    }
-
-    public static class Logger
-    {
-        public static bool DoLogging = false;
-        public static bool ProvideStackTrace = false;
-
-        public static void LogSetThisShip(GenericShip? ship) {
-            if (DoLogging && ProvideStackTrace)
-            {
-                Console.Write($"SelectionLogger: ThisShip set to {ship?.ShipId}. Stack trace: {new System.Diagnostics.StackTrace()}");
-            }
-            else if (DoLogging)
-            {
-                Console.Write($"SelectionLogger: ThisShip set to {ship?.ShipId}.");
-            }
         }
     }
 }

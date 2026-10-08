@@ -78,7 +78,7 @@ namespace AI.Helpers.Navigation.PredictionHelpers {
         }
     }
 
-    public static class BatchedPredicitionHelper
+    public static class BatchedMovementPredicitionHelper
     {
         public static Dictionary<string, MovementPrediction> Predictions = new();
 
