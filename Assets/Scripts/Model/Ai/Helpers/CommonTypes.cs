@@ -206,7 +206,7 @@ namespace AI.Helpers.Types
             return new ManeuverTemplate(bearing, direction, speed, isBombTemplate, isSideTemplate);
         }
 
-        public static class Quick {
+        public static class Static {
             public static Maneuver TwoFowardStraight { get; } = new("2.F.S");
         }
     }
@@ -263,9 +263,9 @@ namespace AI.Helpers.Types.Actions
             {
                 switch (SplitTemplateOptionName[3])
                 {
-                    case "Forward": 
+                    case "Top": 
                         return Direction.Top;
-                    case "Backwards":
+                    case "Bottom":
                         return Direction.Bottom;
                     default:
                         ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[3] not recognised.");
@@ -498,18 +498,20 @@ namespace AI.Helpers.Types
     }
 }
 
-namespace AI.Helpers.Types
+namespace AI.Helpers
 {
     public static class ConsoleHelpers
     {
         public static void Warn(string value)
         {
             Console.Write(value, false, "yellow");
+            Messages.ShowError(value, false);
         }
 
         public static void Error(string value)
         {
             Console.Write(value, true, "red");
+            Messages.ShowError(value, false);
         }
     }
 }

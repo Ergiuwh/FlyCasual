@@ -163,8 +163,10 @@ namespace ActionsList
             * 90 - Cancel crit
             * 80 - Evade action is 1-hull
             * 50 - Focus action if has target
+            * 30 - Target lock if has target
             * 25 - Reinforce action if there are no enemies
             * 20 - Focus action if no target
+            * 15 - Evade
             * 10 - Focus action if Expertise is installed
             * int.MinValue - The ai cannot / may not correctly perform this action
             */

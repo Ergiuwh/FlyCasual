@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using AI.Helpers;
 
 namespace CommandsList
 {
@@ -65,12 +66,12 @@ namespace CommandsList
                     }
                 }
 
-                if (numberToGet > DebugManager.AiPlanningLog.RoundsCurrentlyStored)
+                if (numberToGet > AiPlanningLog.RoundsCurrentlyStored)
                 {
-                    numberToGet = DebugManager.AiPlanningLog.RoundsCurrentlyStored;
+                    numberToGet = AiPlanningLog.RoundsCurrentlyStored;
                 }
 
-                string formattedPlanningLog = DebugManager.AiPlanningLog.FormatLastNRounds(numberToGet);
+                string formattedPlanningLog = AiPlanningLog.FormatLastNRounds(numberToGet);
 
                 Console.Write($"debugai copyplanninglog count:{numberToGet}");
 

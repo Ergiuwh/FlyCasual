@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using ActionsList;
+using AI.Helpers;
 using AI.Helpers.Navigation;
 using AI.Helpers.Navigation.PredictionHelpers;
 using AI.Helpers.Types;
@@ -75,7 +76,7 @@ namespace AI.Aggressor
                 throw new Exception("AI.Aggressor.NavigationSubSystem : StartCalculations called when CurrentPlayer is null.");
             }
 
-            DebugManager.AiPlanningLog.OpenNewGroup("Planning Phase");
+            AiPlanningLog.OpenNewGroup("Planning Phase");
 
             VirtualBoard.Activate();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
@@ -86,13 +87,13 @@ namespace AI.Aggressor
 
             yield return FirstPredictionRound();
 
-            DebugManager.AiPlanningLog.OpenNewGroup("Second prediction round");
+            AiPlanningLog.OpenNewGroup("Second prediction round");
             yield return SecondPredictionRound();
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.CloseGroup();
 
-            DebugManager.AiPlanningLog.OpenNewGroup("Third prediction round");
+            AiPlanningLog.OpenNewGroup("Third prediction round");
             yield return ThirdPredictionRound();
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.CloseGroup();
 
             CopyOrderOfActivationToVirtualBoard();
 
@@ -100,7 +101,7 @@ namespace AI.Aggressor
 
             ShowCalculationsEnd();
 
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.CloseGroup();
 
             callback();
         }
@@ -215,7 +216,7 @@ namespace AI.Aggressor
 
                 VirtualBoard.GetShipInterface(ship).SetPosition(fastPrediction.FinalPositionInfo);
 
-                fastPrediction.IsOffTheBoard = BoardTools.Board.IsOffTheBoard(ship);
+                fastPrediction.IsOffTheBoard = Board.IsOffTheBoard(ship);
 
                 VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
 
@@ -253,7 +254,7 @@ namespace AI.Aggressor
                 throw new Exception("AI.Aggressor.NavigationSubSystem : PredictBestManeuverForShip called when CurrentPlayer is null.");
             }
 
-            DebugManager.AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
+            AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
 
             if (ship.Owner == CurrentPlayer)
             {
@@ -280,7 +281,7 @@ namespace AI.Aggressor
 
                 navigationResults.Add(maneuver.Key, CurrentNavigationResult);
 
-                DebugManager.AiPlanningLog.Add($"{maneuver.Key}  {CurrentNavigationResult}");
+                AiPlanningLog.Add($"{maneuver.Key}  {CurrentNavigationResult}");
             }
 
             VirtualBoard.GetShipDataOrError(ship).UpdateNavigationResults(navigationResults);
@@ -292,13 +293,13 @@ namespace AI.Aggressor
 
             Maneuver chosenManeuver = new(bestManeuvers[UnityEngine.Random.Range(0,numberOfHighestPriority)].Key);
 
-            DebugManager.AiPlanningLog.Add($"Selected {chosenManeuver}");
+            AiPlanningLog.Add($"Selected {chosenManeuver}");
 
             VirtualBoard.GetShipDataOrError(ship).SetPlannedManeuver(chosenManeuver);
             VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
             VirtualBoard.ReturnAllCollisions();
 
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.CloseGroup();
         }
 
         /// <summary>
@@ -370,14 +371,14 @@ namespace AI.Aggressor
                 AllShips.Remove(shipToActivate);
             }
 
-            if (DebugManager.AiPlanningLog.DoLogging) {
+            if (AiPlanningLog.DoLogging) {
                 string orderOfActivationText = "Order of activation chosen: ";
                 foreach (GenericShip ship in orderOfActivation)
                 {
                     orderOfActivationText += ship + ", ";
                 }
 
-                DebugManager.AiPlanningLog.Add(orderOfActivationText);
+                AiPlanningLog.Add(orderOfActivationText);
             }
 
             return orderOfActivation;
@@ -644,6 +645,8 @@ namespace AI.Aggressor
         {
             GenericShip theShip = Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.");
 
+            AiPlanningLog.OpenNewGroup("Barrel Roll Priority");
+
             VirtualBoard.Activate();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
 
@@ -662,8 +665,10 @@ namespace AI.Aggressor
                 }
 
                 if (planInfo.IsAllowed == false)
-                { 
+                {
                     scoredBarrelRollPlans.Add((0, planInfo));
+                    AiPlanningLog.Add($"{planInfo.TemplateOptionName} {planInfo.PositionOptionName}  0 (Fails)");
+                    break;
                 }
 
                 VirtualBoard.GetShipInterface(theShip).SetPosition((ShipPositionInfo)planInfo.FinalPositionInfo);
@@ -673,6 +678,8 @@ namespace AI.Aggressor
 
                 int delta = movementResult.Priority - currentPositionResult.Priority;
                 scoredBarrelRollPlans.Add((delta / 20, planInfo));
+
+                AiPlanningLog.Add($"{planInfo.TemplateOptionName} {planInfo.PositionOptionName}  {delta / 20}");
             }
 
             VirtualBoard.Deactivate();
@@ -680,10 +687,13 @@ namespace AI.Aggressor
             (int, BarrelRollPlanInfo) chosenPlan = scoredBarrelRollPlans.OrderByDescending(a => a.Item1).First();
             if (chosenPlan.Item1 == int.MinValue)
             {
+                AiPlanningLog.CloseGroup();
                 return (int.MinValue, null);
             }
             else
             {
+                AiPlanningLog.Add($"Best plan: {chosenPlan.Item2.TemplateOptionName} {chosenPlan.Item2.PositionOptionName}");
+                AiPlanningLog.CloseGroup();
                 return chosenPlan;
             }
         }
@@ -691,6 +701,8 @@ namespace AI.Aggressor
         public static (int, BoostPlanInfo?) GetBoostActionPriority(List<BoostPlanInfo> boostPlans)
         {
             GenericShip theShip = Selection.ThisShip ?? throw new Exception("Selection.ThisShip null in unexpected place.");
+
+            AiPlanningLog.OpenNewGroup("Boost Priority");
 
             VirtualBoard.Activate();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
@@ -710,8 +722,10 @@ namespace AI.Aggressor
                 }
 
                 if (planInfo.IsAllowed == false)
-                { 
+                {
                     scoredPlans.Add((0, planInfo));
+                    AiPlanningLog.Add($"{planInfo.BoostMove.Name}  0 (Fails)");
+                    break;
                 }
 
                 VirtualBoard.GetShipInterface(theShip).SetPosition((ShipPositionInfo)planInfo.FinalPositionInfo);
@@ -721,6 +735,8 @@ namespace AI.Aggressor
 
                 int delta = movementResult.Priority - currentPositionResult.Priority;
                 scoredPlans.Add((delta / 20, planInfo));
+
+                AiPlanningLog.Add($"{planInfo.BoostMove.Name}  {delta / 20}{(planInfo.IsAllowed ? "" : " Fails")}");
             }
 
             VirtualBoard.Deactivate();
@@ -728,10 +744,13 @@ namespace AI.Aggressor
             (int, BoostPlanInfo) chosenPlan = scoredPlans.OrderByDescending(a => a.Item1).First();
             if (chosenPlan.Item1 == int.MinValue)
             {
+                AiPlanningLog.CloseGroup();
                 return (int.MinValue, null);
             }
             else
             {
+                AiPlanningLog.Add($"Best plan: {chosenPlan.Item2.BoostMove.Name}");
+                AiPlanningLog.CloseGroup();
                 return chosenPlan;
             }
         }
@@ -743,7 +762,7 @@ namespace AI.Aggressor
                 throw new Exception("AI.Aggressor.NavigationSubSystem : StartCalculationsQuick called when CurrentPlayer is null.");
             }
 
-            DebugManager.AiPlanningLog.OpenNewGroup("Planning Phase");
+            AiPlanningLog.OpenNewGroup("Planning Phase");
 
             VirtualBoard.Activate();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
@@ -752,8 +771,10 @@ namespace AI.Aggressor
 
             OrderOfActivation = GenerateOrderOfActivation();
 
+            AiPlanningLog.OpenNewGroup("Inital Movement Predictions");
             foreach (GenericShip ship in OrderOfActivation)
             {
+                AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
                 if (ship.Owner == CurrentPlayer) {
                     Dictionary<string, NavigationResult> shipNavigationResults = new();
                     ShipPositionInfo savedPositionInfo = ship.GetPositionInfo();
@@ -763,26 +784,35 @@ namespace AI.Aggressor
                         NavigationResult navigationResult = CreateNavigationResult(prediction, new());
                         shipNavigationResults.Add(maneuver.Key, navigationResult);
 
+                        AiPlanningLog.Add($"{maneuver.Key}  {CurrentNavigationResult}");
+
                         VirtualBoard.GetShipInterface(ship).SetPosition(savedPositionInfo);
                     }
 
                     VirtualBoard.GetShipDataOrError(ship).UpdateNavigationResults(shipNavigationResults);
                 }
+                AiPlanningLog.CloseGroup();
 
-                MovementPrediction movementPrediction = NavFunctions.PredictFinalPosition(ship, Maneuver.Quick.TwoFowardStraight);
+                MovementPrediction movementPrediction = NavFunctions.PredictFinalPosition(ship, Maneuver.Static.TwoFowardStraight);
                 VirtualBoard.GetShipInterface(ship).SetPosition(movementPrediction.FinalPositionInfo);
             }
+            AiPlanningLog.CloseGroup();
 
             VirtualBoard.UpdateToReal(NewShipInitialiser);
 
+            AiPlanningLog.OpenNewGroup("Final Movement Predictions");
             foreach (GenericShip ship in OrderOfActivation)
             {
                 if (ship.Owner == CurrentPlayer)
                 {
+                    AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
+
                     List<GenericShip> enemyShipsWithoutOtherTarget = FindEnemyShipsWithoutOtherTarget(ship);
                     Dictionary<string, NavigationResult> navigationResults = VirtualBoard.GetShipDataOrError(ship).NavigationResults
                         ?? throw new Exception("AI.Aggressor.NavigationSubSystem.StartCalculationQuick: navigationResults should not be null");
                     ShipPositionInfo savedPositionInfo = ship.GetPositionInfo();
+
+                    bool isManeuverFound = false;
 
                     // prevent infinite loop if I made a mistake
                     for (int i = 0; i < 2*navigationResults.Count; i++) {
@@ -792,8 +822,14 @@ namespace AI.Aggressor
                         NavigationResult result = CreateNavigationResult(prediction, enemyShipsWithoutOtherTarget);
                         VirtualBoard.GetShipInterface(ship).SetPosition(savedPositionInfo);
 
+                        AiPlanningLog.Add($"{navigationResultToTry.Key}  Expected: {navigationResultToTry.Value}, Result: {result}");
+
                         if (navigationResultToTry.Value.Priority == result.Priority)
                         {
+                            AiPlanningLog.Add($"Selected {navigationResultToTry.Key}");
+
+                            isManeuverFound = true;
+
                             VirtualBoard.GetShipDataOrError(ship).SetPlannedManeuver(new Maneuver(navigationResultToTry.Key));
                             yield return NavFunctions.ApplyManeuverOnVirtualBoard(VirtualBoard, ship, new Maneuver(navigationResultToTry.Key));
                             break;
@@ -803,12 +839,20 @@ namespace AI.Aggressor
                             navigationResults[navigationResultToTry.Key] = result;
                         }
                     }
+
+                    if (!isManeuverFound)
+                    {
+                        ConsoleHelpers.Error("AI.Aggressor.NavigationSubSystem.StartCalculationsQuick: Did not find maneuver.");
+                    }
+
+                    AiPlanningLog.CloseGroup();
                 }
                 else
                 {
-                    yield return NavFunctions.ApplyManeuverOnVirtualBoard(VirtualBoard, ship, Maneuver.Quick.TwoFowardStraight);
+                    yield return NavFunctions.ApplyManeuverOnVirtualBoard(VirtualBoard, ship, Maneuver.Static.TwoFowardStraight);
                 }
             }
+            AiPlanningLog.CloseGroup();
 
             CopyOrderOfActivationToVirtualBoard();
 
@@ -816,7 +860,7 @@ namespace AI.Aggressor
 
             ShowCalculationsEnd();
 
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.CloseGroup();
 
             callback();
         }

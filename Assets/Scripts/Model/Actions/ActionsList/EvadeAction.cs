@@ -77,11 +77,11 @@ namespace ActionsList
 
         public override int GetActionPriority()
         {
-            int result = 0;
+            int result = 15;
             // Increase the chance to evade if the ship has only 1 hull and has enemies targeting it.
             if (Selection.ThisShip.State.HullCurrent == 1 && Selection.ThisShip.State.Agility >= 1 && ActionsHolder.CountEnemiesTargeting(HostShip, 0) > 0)
             {
-                result += 80;
+                result = 80;
             }
             return result;
         }

@@ -218,14 +218,7 @@ namespace SubPhases
 
         public static string NameTemplateOption(ManeuverTemplate template, Direction primaryDirection, Direction secondaryDirection = Direction.None)
         {
-            if (secondaryDirection == Direction.None)
-            {
-                return $"{primaryDirection} {template.NameNoDirection}";
-            }
-            else
-            {
-                return $"{primaryDirection} {template.NameNoDirection} {secondaryDirection}";
-            }
+            return BarrelRollHelpers.NameTemplateOption(template, primaryDirection, secondaryDirection);
         }
 
         protected virtual void GenerateSelectTemplateDecisions(DecisionSubPhase subphase)
@@ -808,5 +801,24 @@ namespace SubPhases
             bool result = false;
             return result;
         }
+    }
+}
+
+namespace Actions
+{
+    public static class BarrelRollHelpers
+    {
+        public static string NameTemplateOption(ManeuverTemplate template, Direction primaryDirection, Direction secondaryDirection = Direction.None)
+        {
+            if (secondaryDirection == Direction.None)
+            {
+                return $"{primaryDirection} {template.NameNoDirection}";
+            }
+            else
+            {
+                return $"{primaryDirection} {template.NameNoDirection} {secondaryDirection}";
+            }
+        }
+
     }
 }

@@ -2,6 +2,7 @@
 
 using ActionsList;
 using AI.Aggressor;
+using AI.Helpers;
 using AI.Helpers.Types;
 using Ship;
 using System;
@@ -37,7 +38,7 @@ namespace Players
         {
             if (Selection.ThisShip is null ) { throw new Exception(); }
 
-            DebugManager.AiPlanningLog.OpenNewGroup($"Action decision for {Selection.ThisShip}");
+            AiPlanningLog.OpenNewGroup($"Action decision for {Selection.ThisShip}");
 
             Dictionary<GenericAction, int> actionsPriority = new();
 
@@ -66,7 +67,7 @@ namespace Players
                     priority += redActionPriorityModifier;
                 }
 
-                DebugManager.AiPlanningLog.Add($"{action.Name} -> {priority}");
+                AiPlanningLog.Add($"{(action.IsRed ? "Red " : "")}{action.Name} -> {priority}");
                 actionsPriority.Add(action, priority);
             }
 
@@ -79,14 +80,14 @@ namespace Players
 
                 if (prioritizedAction.Value > 0)
                 {
-                    DebugManager.AiPlanningLog.Add($"Selected action {prioritizedAction.Key}");
-                    DebugManager.AiPlanningLog.CloseGroup();
+                    AiPlanningLog.Add($"Selected action {prioritizedAction.Key}");
+                    AiPlanningLog.CloseGroup();
                     return prioritizedAction.Key;
                 }
             }
             
-            DebugManager.AiPlanningLog.Add("Selected to skip action.");
-            DebugManager.AiPlanningLog.CloseGroup();
+            AiPlanningLog.Add("Selected to skip action.");
+            AiPlanningLog.CloseGroup();
             return null;
         }
 
@@ -136,13 +137,13 @@ namespace Players
         }
     }
 
-    public class AggressorAiPlayerQuick : GenericAiPlayer
+    public class AggressorAiPlayerQuick : AggressorAiPlayer
     {
-        public bool DoRepositionActions;
         public AggressorAiPlayerQuick() : base()
         {
-            Name = "Aggressor AI (quick)";
-            DoRepositionActions = false;
+            Name = "Aggressor AI (fast)";
+
+            NickName = "Aggressor (fast)";
         }
 
         protected override void DoPlanningInPlanningPhase(Action callback)
@@ -152,12 +153,12 @@ namespace Players
 
         protected override bool DoCalculateBarrelRollResults()
         {
-            return DoRepositionActions;
+            return false;
         }
 
         protected override bool DoCalculateBoostResults()
         {
-            return DoRepositionActions;
+            return false;
         }
     }
 }

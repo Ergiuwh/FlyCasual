@@ -41,14 +41,14 @@ namespace Players
     public partial class GenericPlayer
     {
         public PlayerType PlayerType;
-        public string? Name;
+        public string Name;
         public PlayerNo PlayerNo;
         public bool UsesHotacAiRules;
         public int SquadCost;
 
-        public string? NickName;
-        public string? Title;
-        public string? Avatar;
+        public string NickName;
+        public string Title;
+        public string Avatar;
 
         public GameObject? PlayerInfoPanel;
 

@@ -179,6 +179,11 @@ namespace ActionsList
                 result += 55;
             }
 
+            if (result == 0 && HasValidLockTargetsAndNoLockOnShipInRange(Selection.ThisShip))
+            {
+                result += 30;
+            }
+
             return result;
         }
 

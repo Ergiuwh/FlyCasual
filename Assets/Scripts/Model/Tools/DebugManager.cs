@@ -1,7 +1,7 @@
 ﻿using Players;
 using UnityEngine;
 
-public static partial class DebugManager
+public static class DebugManager
 {
     public static bool ReleaseVersion = true;
 
@@ -91,7 +91,7 @@ public static partial class DebugManager
 
     public static void Initialize()
     {
-        AiPlanningLog.Initialize();
+        AI.Helpers.AiPlanningLog.Initialize();
 
     }
 

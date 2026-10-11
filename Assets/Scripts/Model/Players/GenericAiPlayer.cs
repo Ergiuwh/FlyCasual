@@ -1,6 +1,7 @@
 ﻿#nullable enable
 // parts of this file have nullable warnings disabled.
 
+using Actions;
 using ActionsList;
 using AI.Helpers.Navigation;
 using AI.Helpers.Types;
@@ -807,20 +808,20 @@ namespace Players
             {
                 if (maneuverTemplate.Bearing == ManeuverBearing.Straight)
                 {
-                    barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Left));
-                    barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Right));
+                    barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Left));
+                    barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Right));
                 }
                 else
                 {
                     if (maneuverTemplate.Direction == ManeuverDirection.Left)
                     {
-                        barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Right, Direction.Top));
-                        barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Left, Direction.Bottom));
+                        barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Right, Direction.Top));
+                        barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Left, Direction.Bottom));
                     }
                     else
                     {
-                        barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Left, Direction.Top));
-                        barrelRollOptionStrings.Add(BarrelRollPlanningSubPhase.NameTemplateOption(maneuverTemplate, Direction.Right, Direction.Bottom));
+                        barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Left, Direction.Top));
+                        barrelRollOptionStrings.Add(BarrelRollHelpers.NameTemplateOption(maneuverTemplate, Direction.Right, Direction.Bottom));
                     }
                 }
             }

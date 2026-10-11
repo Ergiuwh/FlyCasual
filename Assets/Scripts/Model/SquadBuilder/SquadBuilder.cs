@@ -43,12 +43,15 @@ namespace SquadBuilderNS
             SetDefaultPlayerNames();
         }
 
+        public static Type ai_player_1 = typeof(AggressorAiPlayerQuick);
+        public static Type ai_player_2 = typeof(AggressorAiPlayerQuick);
+
         private void SetPlayerTypesByMode(string modeName)
         {
             switch (modeName)
             {
                 case "vsAI":
-                    SetPlayerTypes(typeof(HumanPlayer), typeof(AggressorAiPlayer));
+                    SetPlayerTypes(typeof(HumanPlayer), ai_player_2);
                     break;
                 case "Internet":
                     SetPlayerTypes(typeof(HumanPlayer), typeof(NetworkOpponentPlayer));
@@ -57,7 +60,7 @@ namespace SquadBuilderNS
                     SetPlayerTypes(typeof(HumanPlayer), typeof(HumanPlayer));
                     break;
                 case "AIvsAI":
-                    SetPlayerTypes(typeof(AggressorAiPlayer), typeof(AggressorAiPlayer));
+                    SetPlayerTypes(ai_player_1, ai_player_2);
                     break;
                 case "Replay":
                     SetPlayerTypes(typeof(ReplayPlayer), typeof(ReplayPlayer));

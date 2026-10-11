@@ -1,9 +1,8 @@
 #nullable enable
 
 using System.Collections.Generic;
-using AI.Helpers.Types;
 
-public static partial class DebugManager
+namespace AI.Helpers
 {
     public static class AiPlanningLog {
         private class RecursiveStringList {
