@@ -3,9 +3,9 @@
 
 using Actions;
 using ActionsList;
-using AI.Helpers.Navigation;
 using AI.Helpers.Types;
 using AI.Helpers.Types.Actions;
+using AI.Helpers.VirtualBoard;
 using BoardTools;
 using GameCommands;
 using GameModes;
@@ -679,10 +679,7 @@ namespace Players
 
                 BarrelRollPositionsToTry = new(BarrelRollPositions);
 
-                BarrelRollActionWithPlans barrelRollActionWithPlans = new()
-                {
-                    BarrelRollPlans = barrelRollPlans
-                };
+                BarrelRollActionWithPlans barrelRollActionWithPlans = new((BarrelRollAction)actionsList[barrelRollActionIndex], barrelRollPlans);
                 actionsList[barrelRollActionIndex] = barrelRollActionWithPlans;
             }
 
@@ -718,10 +715,7 @@ namespace Players
 
                 virtualBoard.Deactivate();
 
-                BoostActionWithPlans boostActionWithPlans = new()
-                {
-                    BoostPlans = boostPlans
-                };
+                BoostActionWithPlans boostActionWithPlans = new((BoostAction)actionsList[boostActionIndex], boostPlans);
                 actionsList[boostActionIndex] = boostActionWithPlans;
             } 
 

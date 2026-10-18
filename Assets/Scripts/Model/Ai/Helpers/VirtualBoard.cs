@@ -3,10 +3,11 @@
 using BoardTools;
 using Ship;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace AI.Helpers.Navigation
+namespace AI.Helpers.VirtualBoard
 {
     public static class VirtualBoardManager
     {
@@ -49,8 +50,6 @@ namespace AI.Helpers.Navigation
         /// If LastActiveVirtualBoard == <paramref name="virtualBoard"/>, call <paramref name="virtualBoard"/>.RecoverActiveInternal().
         /// Otherwise, call <paramref name="virtualBoard"/>.ActivateInternal().
         /// </summary>
-        /// <param name="virtualBoard"></param>
-        /// <exception cref="Exception"></exception>
         private static void ActivateVirtualBoard(AbstractVirtualBoard virtualBoard)
         {
             if (ActiveVirtualBoard is null) {
@@ -87,7 +86,6 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Throws Exception if ActiveVirtualBoard != RealBoard.
         /// </summary>
-        /// <exception cref="Exception"></exception>
         public static void UpdateRealBoard()
         {
             if (ReferenceEquals(ActiveVirtualBoard, RealBoard))
@@ -195,13 +193,8 @@ namespace AI.Helpers.Navigation
     public class VirtualBoard<T> : VirtualBoardManager.AbstractVirtualBoard where T: class
     {
         public Dictionary<GenericShip, ShipInfo> Ships;
-        public bool IsActive
-        {
-            get
-            {
-                return ReferenceEquals(VirtualBoardManager.ActiveVirtualBoard, this);
-            }
-        }
+        public bool IsActive { get { return ReferenceEquals(VirtualBoardManager.ActiveVirtualBoard, this); } }
+        public bool IsNotActive { get { return !IsActive; } }
 
         public enum VirtualBoardState
         {
@@ -241,6 +234,18 @@ namespace AI.Helpers.Navigation
                     thisShip.ToggleColliders(true);
 
                     CollisionsRemoved = false;
+                }
+            }
+
+            public void ToggleCollisions(GenericShip thisShip, bool value)
+            {
+                if (value)
+                {
+                    ReturnCollisions(thisShip);
+                }
+                else
+                {
+                    RemoveCollisions(thisShip);
                 }
             }
 
@@ -305,49 +310,45 @@ namespace AI.Helpers.Navigation
         /// Short-circuit if ActiveVirtualBoard == this.
         /// Applies virtual positions.
         /// </summary>
-        /// <returns></returns>
-        public VirtualBoard<T> Activate()
+        public void Activate()
         {
             if (IsActive)
             {
-                return this;
+                return;
             }
 
             VirtualBoardManager.ActivateAndPushToStack(this);
-            return this;
         }
 
         /// <summary>
-        /// Returns null if another virtual board is active. Otherwise, activate this and push to vb stack.
+        /// If possible, activate this and push to vb stack. Return true if this is active.
         /// Applies virtual positions.
         /// </summary>
-        /// <returns></returns>
-        public VirtualBoard<T>? TryActivate()
+        public bool TryActivate()
         {
             if (VirtualBoardManager.ActiveVirtualBoard is null)
             {
                 VirtualBoardManager.ActivateAndPushToStack(this);
             }
 
-            return IsActive ? this : null;
+            return IsActive;
         }
 
         /// <summary>
         /// If this is on top of the vb stack, deactivate this, removing it from vb stack.
+        /// Then active the top vb in the vb stack.
         /// </summary>
-        /// <returns></returns>
-        public VirtualBoard<T> Deactivate()
+        public void Deactivate()
         {
             if (VirtualBoardManager.ActiveVirtualBoard != this)
             {
-                return this;
+                return;
             }
 
             VirtualBoardManager.PopVirtualBoardStack();
-            return this;
         }
 
-        public VirtualBoard<T> ApplyVirtualPositions()
+        public void ApplyVirtualPositions()
         {
             if (IsActive)
             {
@@ -355,7 +356,8 @@ namespace AI.Helpers.Navigation
                 {
                     Ships[ship].ApplyPosition(ship);
                 }
-                return this;
+
+                return;
             }
             else
             {
@@ -366,9 +368,7 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// If the real board is active, this updates it first.
         /// </summary>
-        /// <param name="newShipInitialiser"></param>
-        /// <returns></returns>
-        public VirtualBoard<T> UpdateToReal(Func<GenericShip, T> newShipInitialiser)
+        public void UpdateToReal(Func<GenericShip, T> newShipInitialiser)
         {
             if (VirtualBoardManager.IsRealBoardActive)
             {
@@ -399,8 +399,6 @@ namespace AI.Helpers.Navigation
                     Ships.Add(ship, new ShipInfo(VirtualBoardManager.RealBoard.Ships[ship].VirtualPosition, newShipInitialiser(ship)));
                 }
             }
-
-            return this;
         }
 
         public class ShipInterface
@@ -433,6 +431,12 @@ namespace AI.Helpers.Navigation
                 return this;
             }
 
+            public ShipInterface ToggleCollisions(bool value)
+            {
+                ShipInfo.ToggleCollisions(Ship, value);
+                return this;
+            }
+
             public bool HasCollisions()
             {
                 return !ShipInfo.CollisionsRemoved;
@@ -441,8 +445,6 @@ namespace AI.Helpers.Navigation
             /// <summary>
             /// If this board is active, automatically apply the new position.
             /// </summary>
-            /// <param name="info"></param>
-            /// <returns></returns>
             public ShipInterface SetPosition(ShipPositionInfo info)
             {
                 return SetPosition(info, CreatedBy.IsActive);
@@ -453,21 +455,27 @@ namespace AI.Helpers.Navigation
                 ShipInfo.VirtualPosition = info;
                 if (applyPosition)
                 {
-                    if (!CreatedBy.IsActive)
+                    if (CreatedBy.IsNotActive)
                     {
                         throw new Exception("Attempt to apply positions of an inactive virtual board.");
                     }
+
                     ShipInfo.ApplyPosition(Ship);
                 }
 
                 return this;
             }
 
+            public ShipInterface ApplyPosition()
+            {
+                ShipInfo.ApplyPosition(Ship);
+                
+                return this;
+            }
+
             /// <summary>
             /// If this board is active, also apply the new position.
             /// </summary>
-            /// <param name="info"></param>
-            /// <returns></returns>
             public ShipInterface UpdateToRealPosition()
             {
                 return UpdateToRealPosition(CreatedBy.IsActive);
@@ -493,38 +501,32 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Does not check if the returned ShipInterface is valid. If ship is not in this virtual board, using it may throw an exception.
         /// </summary>
-        /// <param name="ship"></param>
-        /// <returns></returns>
         public ShipInterface GetShipInterface(GenericShip ship)
         {
             return new ShipInterface(ship, this);
         }
 
-        public List<ShipInterface> GetShipInterfaceOnAllShips()
+        public IEnumerable<ShipInterface> GetShipInterfaceOnAllShips()
         {
-            List<ShipInterface> result = new();
             foreach (GenericShip ship in Ships.Keys)
             {
-                result.Add(new ShipInterface(ship, this));
+                yield return GetShipInterface(ship);
             }
-            return result;
         }
 
-        public List<ShipInterface> GetShipInterfaceOnAllShipsWhere(Func<GenericShip, bool> predicate)
+        public IEnumerable<ShipInterface> GetShipInterfaceOnAllShipsWhere(Func<GenericShip, bool> predicate)
         {
-            List<ShipInterface> result = new();
             foreach (GenericShip ship in Ships.Keys)
             {
                 if (predicate(ship)) {
-                    result.Add(new ShipInterface(ship, this));
+                    yield return GetShipInterface(ship);
                 }
             }
-            return result;
         }
 
         public void AssertIsActive()
         {
-            if (!IsActive)
+            if (IsNotActive)
             {
                 throw new Exception("VirtualBoard assert failed: AssertIsActive");
             }
@@ -536,12 +538,6 @@ namespace AI.Helpers.Navigation
             {
                 throw new Exception("VirtualBoard assert failed: AssertIsNotActive");
             }
-        }
-
-        public ShotInfo GenerateShotInfo(GenericShip attacker, GenericShip defender, IShipWeapon weapon)
-        {
-            AssertIsActive();
-            return new ShotInfo(attacker, defender, weapon);
         }
 
         public T? GetShipData(GenericShip ship)
@@ -562,14 +558,13 @@ namespace AI.Helpers.Navigation
             return Ships[ship].OtherData;
         }
 
-        public VirtualBoard<T> ReturnAllCollisions()
+        public void ReturnAllCollisions()
         {
             AssertIsActive();
             foreach (KeyValuePair<GenericShip, ShipInfo> pair in Ships)
             {
                 pair.Value.ReturnCollisions(pair.Key);
             }
-            return this;
         }
     }
 }

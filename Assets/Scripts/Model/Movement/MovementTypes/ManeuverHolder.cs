@@ -69,15 +69,13 @@ namespace Movement
             shipTag = null;
         }
 
-        public ManeuverHolder(string parameters, Ship.GenericShip? ship = null)
+        public static void ParseManeuverCode(string parameters, out ManeuverSpeed speed, out ManeuverDirection direction, out ManeuverBearing bearing)
         {
             string[] arrParameters = parameters.Split('.');
             if (arrParameters.Length < 3)
             {
                 Messages.ShowError($"Error: maneuverCode is invalid, only {arrParameters.Length} blocks. String: \"{parameters}\"");
             }
-
-            ManeuverSpeed speed = ManeuverSpeed.Speed1;
 
             switch (arrParameters[0])
             {
@@ -100,11 +98,10 @@ namespace Movement
                     speed = ManeuverSpeed.Speed5;
                     break;
                 default:
+                    speed = ManeuverSpeed.Speed1;
                     Messages.ShowError($"Error: Speed in maneuverCode is invalid, \"{arrParameters[0]}\"");
                     break;
             }
-
-            ManeuverDirection direction = ManeuverDirection.Forward;
 
             switch (arrParameters[1])
             {
@@ -121,11 +118,10 @@ namespace Movement
                     direction = ManeuverDirection.Stationary;
                     break;
                 default:
+                    direction = ManeuverDirection.Forward;
                     Messages.ShowError($"Error: Direction in maneuverCode is invalid, \"{arrParameters[1]}\"");
                     break;
             }
-
-            ManeuverBearing bearing = ManeuverBearing.Straight;
 
             switch (arrParameters[2])
             {
@@ -157,13 +153,15 @@ namespace Movement
                     bearing = ManeuverBearing.ReverseStraight;
                     break;
                 default:
+                    bearing = ManeuverBearing.Straight;
                     Messages.ShowError($"Error: Bearing in maneuverCode is invalid, \"{arrParameters[2]}\"");
                     break;
             }
+        }
 
-            Speed = speed;
-            Direction = direction;
-            Bearing = bearing;
+        public ManeuverHolder(string parameters, Ship.GenericShip? ship = null)
+        {
+            ParseManeuverCode(parameters, out Speed, out Direction, out Bearing);
 
             ship ??= Selection.ThisShip;
 

@@ -51,20 +51,34 @@ namespace Players
                 ship.CallOnCheckActionComplexity(action, ref action.Color);
                 ship.CallOnCheckActionColor(action, ref action.Color);
 
-                int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan, ref CurrentBoostPlan);
-                if (priority == int.MinValue)
+                if (action.IsRed && ship.IsStressed && !ship.CallCanPerformActionWhileStressed(action))
                 {
                     continue;
                 }
 
-                ship.Ai.CallGetActionPriority(action, ref priority);
-
-                // De-prioritize red actions unless overriden
-                if (action.IsRed)
+                List<GenericAction> linkedActions;
+                if (action.IsRed || ship.IsStressed)
                 {
-                    if (ship.IsStressed && !ship.CallCanPerformActionWhileStressed(action)) continue;
+                    linkedActions = ship.ActionBar.LinkedActions
+                    .Where(a => action.GetType().IsInstanceOfType(a.Key))
+                    .Where(a => !ship.IsAlreadyExecutedAction(a.Value))
+                    .Where(a => a.Value.CanBePerformedWhileStressed)
+                    .Select(a => a.Value)
+                    .ToList();
+                }
+                else
+                {
+                    linkedActions = ship.ActionBar.LinkedActions
+                    .Where(a => action.GetType().IsInstanceOfType(a.Key))
+                    .Where(a => !ship.IsAlreadyExecutedAction(a.Value))
+                    .Select(a => a.Value)
+                    .ToList();
+                }
 
-                    priority += redActionPriorityModifier;
+                int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan, ref CurrentBoostPlan, redActionPriorityModifier, linkedActions);
+                if (priority == int.MinValue)
+                {
+                    continue;
                 }
 
                 AiPlanningLog.Add($"{(action.IsRed ? "Red " : "")}{action.Name} -> {priority}");

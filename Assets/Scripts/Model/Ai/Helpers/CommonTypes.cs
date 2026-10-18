@@ -5,7 +5,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ActionsList;
-using AI.Helpers.Navigation;
 using AI.Helpers.Navigation.PredictionHelpers;
 using BoardTools;
 using Movement;
@@ -52,11 +51,7 @@ namespace AI.Helpers.Types
 
         public Maneuver(string maneuverCode, MovementComplexity complexity)
         {
-            ManeuverHolder maneuverHolder = new(maneuverCode);
-
-            speed = maneuverHolder.Speed;
-            direction = maneuverHolder.Direction;
-            bearing = maneuverHolder.Bearing;
+            ManeuverHolder.ParseManeuverCode(maneuverCode, out speed, out direction, out bearing);
 
             this.complexity = complexity;
         }
@@ -207,7 +202,7 @@ namespace AI.Helpers.Types
         }
 
         public static class Static {
-            public static Maneuver TwoFowardStraight { get; } = new("2.F.S");
+            public static Maneuver TwoFowardStraight { get; } = new("2.F.S", MovementComplexity.None);
         }
     }
 }
@@ -248,7 +243,7 @@ namespace AI.Helpers.Types.Actions
                 case "Left":
                     return Direction.Left;
                 default:
-                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[0] not recognised.");
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo.GetDirectionPrimary", "TemplateSplit[0] not recognised.");
                     return Direction.None;
             }
         }
@@ -268,7 +263,7 @@ namespace AI.Helpers.Types.Actions
                     case "Bottom":
                         return Direction.Bottom;
                     default:
-                        ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[3] not recognised.");
+                        ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo.GetDirectionSecondary", "TemplateSplit[3] not recognised.");
                         return Direction.None;
                 }
             }
@@ -285,7 +280,7 @@ namespace AI.Helpers.Types.Actions
                 case "Backwards":
                     return Direction.Bottom;
                 default:
-                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo Position not recognised.");
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo.GetDirectionShift", "Position not recognised.");
                     return Direction.None;
             }
         }
@@ -305,7 +300,7 @@ namespace AI.Helpers.Types.Actions
                     bearing = ManeuverBearing.Turn;
                     break;
                 default:
-                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[1] not recognised.");
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo.GetTemplate", "TemplateSplit[1] not recognised.");
                     bearing = ManeuverBearing.None;
                     break;
             }
@@ -330,7 +325,7 @@ namespace AI.Helpers.Types.Actions
                     break;
                 default:
                     speed = ManeuverSpeed.Speed0;
-                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo TemplateSplit[2] not recognised.");
+                    ConsoleHelpers.Error("GenericAiPlayer.BarrelRollPlanInfo.GetTemplate", "TemplateSplit[2] not recognised.");
                     break;
             }
 
@@ -365,6 +360,13 @@ namespace AI.Helpers.Types.Actions
     public class BarrelRollActionWithPlans : BarrelRollAction
     {
         public List<BarrelRollPlanInfo> BarrelRollPlans = new();
+
+        public BarrelRollActionWithPlans(BarrelRollAction copyfrom, List<BarrelRollPlanInfo> barrelRollPlans) : base()
+        {
+            BarrelRollPlans = barrelRollPlans;
+
+            HostShip = copyfrom.HostShip;
+        }
     }
 
     public class BoostPlanInfo
@@ -399,36 +401,12 @@ namespace AI.Helpers.Types.Actions
     public class BoostActionWithPlans : BoostAction
     {
         public List<BoostPlanInfo> BoostPlans = new();
-    }
-}
 
-namespace AI.Helpers.Types
-{
-    /// <summary>
-    /// Can be implicitly cast to VirtualBoard&lt;T&gt;.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public class ActiveVirtualBoard<T> where T : class
-    {
-        private VirtualBoard<T> internalVirtualBoard;
-        public VirtualBoard<T> VirtualBoard
+        public BoostActionWithPlans(BoostAction copyfrom, List<BoostPlanInfo> boostPlans) : base()
         {
-            get
-            {
-                internalVirtualBoard.AssertIsActive();
-                return internalVirtualBoard;
-            }
-        }
+            BoostPlans = boostPlans;
 
-        public ActiveVirtualBoard(VirtualBoard<T> virtualBoard)
-        {
-            virtualBoard.AssertIsActive();
-            internalVirtualBoard = virtualBoard;
-        }
-
-        public static implicit operator VirtualBoard<T>(ActiveVirtualBoard<T> activeVirtualBoard)
-        {
-            return activeVirtualBoard.internalVirtualBoard;
+            HostShip = copyfrom.HostShip;
         }
     }
 }
@@ -452,7 +430,7 @@ namespace AI.Helpers.Types
         {
             success = default;
             error = errorValue;
-            isSuccess = true;
+            isSuccess = false;
         }
 
         public bool IsSuccess { get { return isSuccess; } }
@@ -495,6 +473,30 @@ namespace AI.Helpers.Types
                 throw new Exception();
             }
         }
+
+        public Result<T,E> ExpectSuccess()
+        {
+            if (IsError)
+            {
+                throw new Exception();
+            }
+            else
+            {
+                return this;
+            }
+        }
+
+        public Result<T,E> ExpectError()
+        {
+            if (IsSuccess)
+            {
+                throw new Exception();
+            }
+            else
+            {
+                return this;
+            }
+        }
     }
 }
 
@@ -502,16 +504,18 @@ namespace AI.Helpers
 {
     public static class ConsoleHelpers
     {
-        public static void Warn(string value)
+        public static void Warn(string source, string value)
         {
-            Console.Write(value, false, "yellow");
-            Messages.ShowError(value, false);
+            string message = $"Warn: {source}: {value}";
+            Console.Write(message, false, "yellow");
+            Messages.ShowError(message, false);
         }
 
-        public static void Error(string value)
+        public static void Error(string source, string value)
         {
-            Console.Write(value, true, "red");
-            Messages.ShowError(value, false);
+            string message = $"Error: {source}: {value}";
+            Console.Write(message, true, "red");
+            Messages.ShowError(message, true);
         }
     }
 }

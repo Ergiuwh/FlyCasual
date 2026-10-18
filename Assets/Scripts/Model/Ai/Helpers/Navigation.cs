@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AI.Helpers.Navigation.PredictionHelpers;
 using AI.Helpers.Types;
+using AI.Helpers.VirtualBoard;
 using Movement;
 using Ship;
 
@@ -83,8 +84,6 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Only calculates FinalPositionInfo and FinalPositionBeforeRotationInfo.
         /// </summary>
-        /// <param name="movement"></param>
-        /// <returns></returns>
         public static MovementPrediction PredictFinalPosition(GenericMovement movement)
         {
             Selection.ThisShip = movement.TheShip;
@@ -103,9 +102,6 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Only calculates FinalPositionInfo and FinalPositionBeforeRotationInfo.
         /// </summary>
-        /// <param name="ship"></param>
-        /// <param name="maneuver"></param>
-        /// <returns></returns>
         public static MovementPrediction PredictFinalPosition(GenericShip ship, Maneuver maneuver)
         {
             return PredictFinalPosition(ship, maneuver.ToString());
@@ -114,10 +110,6 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Only calculates FinalPositionInfo and FinalPositionBeforeRotationInfo.
         /// </summary>
-        /// <param name="ship"></param>
-        /// <param name="maneuverCode"></param>
-        /// <param name="complexity"></param>
-        /// <returns></returns>
         public static MovementPrediction PredictFinalPosition(GenericShip ship, string maneuverCode, MovementComplexity? complexity = null)
         {
             // isSimple is not currently used by CalculateOnlyFinalPositionIgnoringCollisions()
@@ -128,9 +120,6 @@ namespace AI.Helpers.Navigation
         /// <summary>
         /// Only calculates FinalPositionInfo and FinalPositionBeforeRotationInfo.
         /// </summary>
-        /// <param name="ship"></param>
-        /// <param name="maneuver"></param>
-        /// <returns></returns>
         public static MovementPrediction PredictFinalPosition(GenericShip ship, KeyValuePair<string,MovementComplexity> maneuver)
         {
             // isSimple is not currently used by CalculateOnlyFinalPositionIgnoringCollisions()

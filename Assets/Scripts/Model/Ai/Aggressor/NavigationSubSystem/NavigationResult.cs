@@ -85,11 +85,11 @@ namespace AI.Aggressor
         {
             string result = "";
 
-            result += Priority + " = ";
+            result += $"{Priority} = ";
 
-            result += "distance:" + distanceToNearestEnemy + " ";
-            if (enemiesInShotRange > 0) result += "distanceShot:" + distanceToNearestEnemyInShotRange + " ";
-            result += "angle:" + angleToNearestEnemy + " ";
+            result += $"distance:{distanceToNearestEnemy} ";
+            if (enemiesInShotRange > 0) result += $"distanceShot:{distanceToNearestEnemyInShotRange} ";
+            result += $"angle:{angleToNearestEnemy} ";
 
             switch (movement?.ColorComplexity)
             {
@@ -120,11 +120,11 @@ namespace AI.Aggressor
             if (isBumpedEnemy) result += "BumpedEnemy ";
             if (isBumpedFriendly) result += "BumpedFriendly ";
 
-            if (enemiesInShotRange > 0) result += "enemiesToShoot:" + enemiesInShotRange + " ";
-            if (enemiesWithThisAsOnlyTarget > 0) result += "timesShot:" + enemiesWithThisAsOnlyTarget + " ";
+            if (enemiesInShotRange > 0) result += $"enemiesToShoot:{enemiesInShotRange} ";
+            if (enemiesWithThisAsOnlyTarget > 0) result += $"timesShot:{enemiesWithThisAsOnlyTarget} ";
 
-            if (obstaclesHit > 0) result += "obstaclesHit:" + obstaclesHit + " ";
-            if (minesHit > 0) result += "minesHit:" + obstaclesHit + " ";
+            if (obstaclesHit > 0) result += $"obstaclesHit:{obstaclesHit} ";
+            if (minesHit > 0) result += $"minesHit:{obstaclesHit} ";
 
             return result;
         }

@@ -540,7 +540,7 @@ namespace SubPhases
 
         public static ShipPositionInfo FinalPositionInfo(GenericShipBase shipBase, ManeuverTemplate template, Direction PrimaryDirection, Direction shiftDirection)
         {
-            Vector3 finalPositon = template.GetFinalPosition();
+            Vector3 finalPosition = template.GetFinalPosition();
             Quaternion finalRotation = template.GetFinalRotation();
 
             int directionModifier = (PrimaryDirection == Direction.Left) ? -1 : 1;
@@ -566,9 +566,9 @@ namespace SubPhases
                 shipBase.HALF_OF_SHIPSTAND_SIZE + finalShift
             );
 
-            Vector3 absPosition = finalPositon + finalRotation * shift * Board.BoardIntoWorld(Board.DISTANCE_1);
+            finalPosition += finalRotation * shift * Board.BoardIntoWorld(Board.DISTANCE_1);
 
-            return new ShipPositionInfo(absPosition, finalRotation.eulerAngles);
+            return new ShipPositionInfo(finalPosition, finalRotation.eulerAngles);
         }
 
         private GameObject ShowTemporaryShipBase(Direction shiftDirection, bool isVisible = true)

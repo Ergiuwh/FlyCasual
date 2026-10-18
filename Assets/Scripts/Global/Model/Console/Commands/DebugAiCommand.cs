@@ -13,6 +13,7 @@ namespace CommandsList
             Description = "Utilities and settings for debuging AIs.\n" 
                         + "debugai set movementshowplanning:<bool_input>\n"
                         + "debugai copyplanninglog [count:<number>]\n"
+                        + "[TODO] debugai showvirtualboardlog [player:<1/2>]\n"
                         + "where bool_input: (on/true/enable), (off/false/disable)";
 
             Console.AddAvailableCommand(this);

@@ -78,7 +78,7 @@ namespace AI.Helpers
                 if (activeNode.Children is null)
                 {
                     // This should never happen.
-                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup: an error occurred.");
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup", "an error occurred.");
                     return;
                 }
 
@@ -90,7 +90,7 @@ namespace AI.Helpers
             {
                 if (activePath.Count == 0)
                 {
-                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup: attempt to close group when none are open.");
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup", "attempt to close group when none are open.");
                     return;
                 }
 
@@ -172,11 +172,18 @@ namespace AI.Helpers
 
         private static string FormatGroup(RecursiveStringList.RecursiveStringListNode group, int depth)
         {
-            const int MAX_RECURSION = 10;
+            const int MAX_RECURSION = 12;
+            const int MAX_RECURSION_WARNING_AT = 10;
 
             if (depth > MAX_RECURSION)
             {
+                ConsoleHelpers.Error("AiPlanningLog.FormatGroup", "MAX_RECURSION exceeded.");
                 return "";
+            }
+
+            if (depth > MAX_RECURSION_WARNING_AT)
+            {
+                ConsoleHelpers.Warn("AiPlanningLog.FormatGroup", "MAX_RECURSION_WARNING_AT exceeded. Consider increasing recursion limits.");
             }
 
             if (group.Children == null)
@@ -196,7 +203,7 @@ namespace AI.Helpers
             {
                 if (group.Children[i].Children == null)
                 {
-                    if (i != group.Children.Count - 1)
+                    if (i < group.Children.Count && group.Children[i + 1].Children == null)
                     {
                         result += $"{group.Children[i].Name}\\\n";
                     }
@@ -239,7 +246,7 @@ namespace AI.Helpers
         {
             Log = new();
             StartNewRound("setup");
-            Phases.Events.OnRoundStart += delegate { AiPlanningLog.StartNewRound($"Round {Phases.RoundCounter}"); };
+            Phases.Events.OnRoundStart += delegate { StartNewRound($"Round {Phases.RoundCounter}"); };
         }
     }
 }

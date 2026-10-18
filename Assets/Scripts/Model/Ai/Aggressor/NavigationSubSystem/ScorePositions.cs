@@ -58,17 +58,17 @@ namespace AI.Aggressor.Internal
         {
             string result = "";
 
-            result += Priority + " = ";
+            result += $"{Priority} = ";
 
-            result += "distance:" + distanceToNearestEnemy + " ";
-            if (enemiesInShotRange > 0) result += "distanceShot:" + distanceToNearestEnemyInShotRange + " ";
-            result += "angle:" + angleToNearestEnemy + " ";
+            result += $"distance:{distanceToNearestEnemy} ";
+            if (enemiesInShotRange > 0) result += $"distanceShot:{distanceToNearestEnemyInShotRange} ";
+            result += $"angle:{angleToNearestEnemy} ";
 
             if (isOffTheBoard) result += "OffBoard ";
             if (isLandedOnObstacle) result += "LandedOnObstacle ";
 
-            if (enemiesInShotRange > 0) result += "enemiesToShoot:" + enemiesInShotRange + " ";
-            if (enemiesWithThisAsOnlyTarget > 0) result += "timesShot:" + enemiesWithThisAsOnlyTarget + " ";
+            if (enemiesInShotRange > 0) result += $"enemiesToShoot:{enemiesInShotRange} ";
+            if (enemiesWithThisAsOnlyTarget > 0) result += $"enemiesWithThisAsOnlyTarget:{enemiesWithThisAsOnlyTarget} ";
 
             return result;
         }

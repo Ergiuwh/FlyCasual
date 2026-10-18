@@ -1,4 +1,5 @@
-﻿using BoardTools;
+﻿using AI.Helpers.VirtualBoard;
+using BoardTools;
 using Bombs;
 using GameModes;
 using System.Collections;
@@ -6,6 +7,9 @@ using UnityEngine;
 
 public delegate void CallBackFunction();
 
+[RequireComponent(typeof(PrefabsList))]
+[RequireComponent(typeof(UI))]
+[RequireComponent(typeof(ShipMovementScript))]
 public class GameManagerScript : MonoBehaviour {
 
     public PrefabsList PrefabsList;
@@ -38,6 +42,7 @@ public class GameManagerScript : MonoBehaviour {
         Triggers.Initialize();
         yield return DamageDecks.Initialize();
         DebugManager.Initialize();
+        VirtualBoardManager.InitializeForGame();
 
         GameMode.CurrentGameMode.StartBattle();
     }
@@ -54,7 +59,7 @@ public class GameManagerScript : MonoBehaviour {
             if (!Console.IsActive) UI.GoNextShortcut();
         }
 
-        if (Phases.CurrentSubPhase != null) Phases.CurrentSubPhase.Update();
+        Phases.CurrentSubPhase?.Update();
 
         //TestShotDistance();
     }
