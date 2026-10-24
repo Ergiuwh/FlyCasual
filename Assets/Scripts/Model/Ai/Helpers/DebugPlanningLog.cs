@@ -173,7 +173,7 @@ namespace AI.Helpers
         private static string FormatGroup(RecursiveStringList.RecursiveStringListNode group, int depth)
         {
             const int MAX_RECURSION = 12;
-            const int MAX_RECURSION_WARNING_AT = 10;
+            const int MAX_RECURSION_WARNING_AT = MAX_RECURSION - 2;
 
             if (depth > MAX_RECURSION)
             {
@@ -203,7 +203,7 @@ namespace AI.Helpers
             {
                 if (group.Children[i].Children == null)
                 {
-                    if (i < group.Children.Count && group.Children[i + 1].Children == null)
+                    if (i + 1 < group.Children.Count && group.Children[i + 1].Children == null)
                     {
                         result += $"{group.Children[i].Name}\\\n";
                     }

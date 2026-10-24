@@ -391,7 +391,7 @@ namespace AI.Helpers.Types.Actions
             yield return SingleMovementPredictionHelper.Calculate(ship, maneuver, true);
             MovementPrediction movementPrediction = SingleMovementPredictionHelper.Prediction;
 
-            IsAllowed = movementPrediction.IsOffTheBoard || movementPrediction.IsBumped || movementPrediction.IsHitOrLandedOnObstacle;
+            IsAllowed = !movementPrediction.IsOffTheBoard && !movementPrediction.IsBumped && !movementPrediction.IsHitOrLandedOnObstacle;
             FinalPositionInfo = ship.GetPositionInfo();
 
             ship.SetPositionInfo(savedShipPositionInfo);

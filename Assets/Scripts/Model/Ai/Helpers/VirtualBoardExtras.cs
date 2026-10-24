@@ -24,6 +24,9 @@ namespace AI.Helpers.VirtualBoard
 
     public class VirtualBoardNoData : VirtualBoard<VirtualBoardManager.EmptyClass>
     {
+        public VirtualBoardNoData(string name) : base(name) {  }
+        public VirtualBoardNoData() : base() {  }
+
         public void UpdateToReal()
         {
             UpdateToReal(a => new());

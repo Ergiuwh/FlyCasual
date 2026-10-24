@@ -24,15 +24,13 @@ namespace AI.Aggressor
 
         public void CalculatePriorityInRoundTwo()
         {
-            if (isOffTheBoard)
+            CalculatePositionPriority();
+            if (double.IsNegativeInfinity(Priority))
             {
-                Priority = int.MinValue;
                 return;
             }
 
             if (TheShip == null) throw new Exception("AI.Aggressor.NavigationResult CalculatePriority() requires this.TheShip != null");
-
-            CalculatePositionPriority();
 
             Priority -= minesHit * 2000;
 
@@ -132,7 +130,7 @@ namespace AI.Aggressor
         public void CalculatePriority()
         {
             CalculatePriorityInRoundTwo();
-            if (Priority == int.MinValue)
+            if (double.IsNegativeInfinity(Priority))
             {
                 return;
             }

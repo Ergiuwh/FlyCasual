@@ -22,34 +22,34 @@ namespace AI.Aggressor.Internal
 
         public int enemiesWithThisAsOnlyTarget;
 
-        public int Priority { get; protected set; }
+        public double Priority { get; protected set; }
 
         public PositionScoreInfoInternal()
         {
-            
+
         }
 
         public void CalculatePositionPriority()
         {
             if (isOffTheBoard)
             {
-                Priority = int.MinValue;
+                Priority = double.NegativeInfinity;
                 return;
             }
 
-            Priority = 0;
+            Priority = 0f;
 
             if (isLandedOnObstacle) Priority -= 20000;
 
             if (isOffTheBoardNextTurn) Priority -= 40000;
 
-            Priority += (int)(Math.Sqrt(enemiesInShotRange) * 1000);
+            Priority += Math.Sqrt(enemiesInShotRange) * 1000;
 
             //distance is 0..10, result 0..100
-            Priority += 100 - (int)(distanceToNearestEnemy * 10);
+            Priority += 100 - distanceToNearestEnemy * 10;
 
             //angle is 0..180, result 0..180
-            Priority += 180 - Mathf.RoundToInt(angleToNearestEnemy);
+            Priority += 180 - Mathf.Round(angleToNearestEnemy);
 
             Priority -= enemiesWithThisAsOnlyTarget * 800;
         }

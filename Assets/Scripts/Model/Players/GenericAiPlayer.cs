@@ -35,7 +35,7 @@ namespace Players
         protected BoostPlanInfo? CurrentBoostPlan;
 
         private static readonly string[] BarrelRollPositions = new string[3] { "Forward", "Center", "Backwards" };
-        
+
         private List<string> BarrelRollPositionsToTry;
 
         public GenericAiPlayer() : base()
@@ -50,7 +50,7 @@ namespace Players
         {
             base.SetupShip();
 
-            foreach (var shipHolder in Ships)
+            foreach (KeyValuePair<string, GenericShip> shipHolder in Ships)
             {
                 if (!shipHolder.Value.IsSetupPerformed && shipHolder.Value.State.Initiative == Phases.CurrentSubPhase.RequiredInitiative)
                 {
@@ -119,7 +119,6 @@ namespace Players
         /// <summary>
         /// This should be "private void", but HotacAiPlayer.cs requires "public virtual void".
         /// </summary>
-        /// <param name="ship"></param>
         public virtual void ActivateShip(GenericShip ship)
         {
             Selection.ChangeActiveShip("ShipId:" + ship.ShipId);
@@ -191,7 +190,7 @@ namespace Players
 
         private static GenericShip? GetShipThatCanAttack()
         {
-            foreach (var shipHolder in Roster.GetPlayer(Phases.CurrentPhasePlayer).Ships)
+            foreach (KeyValuePair<string, GenericShip> shipHolder in Roster.GetPlayer(Phases.CurrentPhasePlayer).Ships)
             {
                 if (shipHolder.Value.State.CombatActivationAtInitiative == Phases.CurrentSubPhase.RequiredInitiative)
                 {
@@ -222,7 +221,7 @@ namespace Players
         {
             Dictionary<GenericShip, float> results = new();
 
-            foreach (var shipHolder in Roster.GetPlayer(Roster.AnotherPlayer(thisShip.Owner.PlayerNo)).Ships)
+            foreach (KeyValuePair<string, GenericShip> shipHolder in Roster.GetPlayer(Roster.AnotherPlayer(thisShip.Owner.PlayerNo)).Ships)
             {
                 if (!shipHolder.Value.IsDestroyed)
                 {
@@ -292,7 +291,7 @@ namespace Players
                 throw new Exception("Selection.ActiveShip null in unexpected place.");
             }
 
-            foreach (var diceModification in Combat.DiceModifications.AvailableDiceModifications.Values)
+            foreach (GenericAction? diceModification in Combat.DiceModifications.AvailableDiceModifications.Values)
             {
                 int priority = diceModification.GetDiceModificationPriority();
                 Selection.ActiveShip.CallOnAiGetDiceModificationPriority(diceModification, ref priority);
@@ -446,8 +445,6 @@ namespace Players
         /// <summary>
         /// Use when the maneuver is about to be executed (e.g. SLAM, Countess Ryad)
         /// </summary>
-        /// <param name="options"></param>
-        /// <returns></returns>
         protected virtual Maneuver ChooseManeuverToExecuteFrom(List<Maneuver> options)
         {
             return options[0];
@@ -456,8 +453,6 @@ namespace Players
         /// <summary>
         /// Use when the maneuver is about to be executed (e.g. SLAM, Countess Ryad)
         /// </summary>
-        /// <param name="filter"></param>
-        /// <returns></returns>
         protected Maneuver ChooseManeuverToExecuteFromFilter(Func<Maneuver, bool>? filter = null)
         {
             if (Selection.ThisShip is null)
@@ -704,7 +699,7 @@ namespace Players
                 
                 List<BoostPlanInfo> boostPlans = boostTemplates.Select(a => new BoostPlanInfo(a)).ToList();
 
-                VirtualBoard<VirtualBoardManager.EmptyClass> virtualBoard = new();
+                VirtualBoardNoData virtualBoard = new("Boost results");
                 virtualBoard.UpdateToReal(a => new());
                 virtualBoard.Activate();
 
@@ -887,4 +882,4 @@ namespace Players
         }
 
     }
-}
+}v

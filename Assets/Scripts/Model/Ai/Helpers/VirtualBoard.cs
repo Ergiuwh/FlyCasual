@@ -1,200 +1,20 @@
 #nullable enable
 
-using BoardTools;
 using Ship;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AI.Helpers.VirtualBoard
 {
-    public static class VirtualBoardManager
-    {
-        public static AbstractVirtualBoard? ActiveVirtualBoard { get; private set; }
-        public static AbstractVirtualBoard? LastActiveVirtualBoard { get; private set; }
-        public static VirtualBoard<EmptyClass> RealBoard = new();
-        public static bool IsRealBoardActive
-        {
-            get
-            {
-                return ReferenceEquals(ActiveVirtualBoard, RealBoard);
-            }
-        }
-
-        private static Stack<AbstractVirtualBoard> VirtualBoardStack = new();
-
-        public static void InitializeForGame()
-        {
-            RealBoard = new();
-            ActiveVirtualBoard = RealBoard;
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        private static void DeactivateCurrentBoard()
-        {
-            if (ReferenceEquals(ActiveVirtualBoard, RealBoard))
-            {
-                UpdateRealBoardInternal();
-            }
-            ActiveVirtualBoard?.DeactivateInternal();
-            LastActiveVirtualBoard = ActiveVirtualBoard;
-
-            ActiveVirtualBoard = null;
-        }
-
-        /// <summary>
-        /// If any virtual board is active, including <paramref name="virtualBoard"/>, throw Exception.
-        /// If LastActiveVirtualBoard == <paramref name="virtualBoard"/>, call <paramref name="virtualBoard"/>.RecoverActiveInternal().
-        /// Otherwise, call <paramref name="virtualBoard"/>.ActivateInternal().
-        /// </summary>
-        private static void ActivateVirtualBoard(AbstractVirtualBoard virtualBoard)
-        {
-            if (ActiveVirtualBoard is null) {
-                if (ReferenceEquals(LastActiveVirtualBoard, virtualBoard))
-                {
-                    ActiveVirtualBoard = virtualBoard;
-                    virtualBoard.RecoverActiveInternal();
-                }
-                else
-                {
-                    ActiveVirtualBoard = virtualBoard;
-                    virtualBoard.ActivateInternal();
-                }
-            }
-            else
-            {
-                throw new Exception("Attempt to activate a virtual board while another is active.");
-            }
-        }
-
-        /// <summary>
-        /// This deactivates the active virtual board first.
-        /// </summary>
-        private static void ActivateRealBoard()
-        {
-            if (ActiveVirtualBoard != null && ActiveVirtualBoard != RealBoard)
-            {
-                DeactivateCurrentBoard();
-            }
-            RealBoard.Activate();
-            RealBoard.ApplyVirtualPositions();
-        }
-
-        /// <summary>
-        /// Throws Exception if ActiveVirtualBoard != RealBoard.
-        /// </summary>
-        public static void UpdateRealBoard()
-        {
-            if (ReferenceEquals(ActiveVirtualBoard, RealBoard))
-            {
-                UpdateRealBoardInternal();
-            }
-            else
-            {
-                throw new Exception("Attempt to update VirtualBoardManager.RealBoard while another virtual board is active.");
-            }
-        }
-
-        private static void UpdateRealBoardInternal()
-        {
-            List<GenericShip> shipsToRemove = new();
-            foreach (GenericShip ship in RealBoard.Ships.Keys)
-            {
-                if (ship.IsDestroyed)
-                {
-                    shipsToRemove.Add(ship);
-                    continue;
-                }
-
-                RealBoard.Ships[ship].VirtualPosition = ship.GetPositionInfo();
-            }
-
-            foreach (GenericShip ship in shipsToRemove)
-            {
-                RealBoard.Ships.Remove(ship);
-            }
-
-            foreach (GenericShip ship in Roster.AllShips.Values)
-            {
-                if (!RealBoard.Ships.ContainsKey(ship))
-                {
-                    RealBoard.Ships.Add(ship, new VirtualBoard<EmptyClass>.ShipInfo(ship.GetPositionInfo(), new()));
-                }
-            }
-        }
-
-        public static void ActivateAndPushToStack(AbstractVirtualBoard virtualBoard)
-        {
-            DeactivateCurrentBoard();
-            ActivateVirtualBoard(virtualBoard);
-            VirtualBoardStack.Push(virtualBoard);
-        }
-
-        public static void PopVirtualBoardStack()
-        {
-            DeactivateCurrentBoard();
-            VirtualBoardStack.TryPop(out _);
-            if (VirtualBoardStack.TryPeek(out AbstractVirtualBoard result))
-            {
-                ActivateVirtualBoard(result);
-            }
-            else
-            {
-                ActivateRealBoard();
-            }
-        }
-
-        /// <summary>
-        /// Activates real board.
-        /// </summary>
-        public static void ClearStack()
-        {
-            if (VirtualBoardStack.Count != 0)
-            {
-                DeactivateCurrentBoard();
-                VirtualBoardStack.Clear();
-            }
-
-            ActivateRealBoard();
-        }
-
-        /// <summary>
-        /// This is used as the data type of RealBoard.
-        /// </summary>
-        public class EmptyClass
-        {
-            
-        }
-
-        public abstract class AbstractVirtualBoard
-        {
-            /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board. (Which you shouldn't need to do.)
-            /// </summary>
-            public abstract void ActivateInternal();
-            /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board. (Which you shouldn't need to do.)
-            /// </summary>
-            public abstract void DeactivateInternal();
-            /// <summary>
-            /// <para>You shouldn't call this outside of a implementing a virtual board. (Which you shouldn't need to do.) </para>
-            /// No other board has activated since we last deactivated.
-            /// </summary>
-            public virtual void RecoverActiveInternal()
-            {
-                ActivateInternal();
-            }
-        }
-    }
-
     public class VirtualBoard<T> : VirtualBoardManager.AbstractVirtualBoard where T: class
     {
         public Dictionary<GenericShip, ShipInfo> Ships;
         public bool IsActive { get { return ReferenceEquals(VirtualBoardManager.ActiveVirtualBoard, this); } }
         public bool IsNotActive { get { return !IsActive; } }
+
+        public string Name { get; protected set; }
 
         public enum VirtualBoardState
         {
@@ -207,6 +27,7 @@ namespace AI.Helpers.VirtualBoard
             public ShipPositionInfo VirtualPosition;
             public T OtherData;
             public bool CollisionsRemoved { get; private set; }
+            public bool CollisionsEnabled { get { return !CollisionsRemoved; } }
             public bool SavedCollisionsRemoved;
 
             public ShipInfo(ShipPositionInfo shipPositionInfo, T otherData)
@@ -257,9 +78,13 @@ namespace AI.Helpers.VirtualBoard
                 }
                 else
                 {
-                    thisShip.GetShipAllPartsTransform().GetPositionAndRotation(out Vector3 savedModelPosition, out Quaternion savedModelRotation);
+                    thisShip.GetShipAllPartsTransform().GetPositionAndRotation(
+                        out Vector3 savedModelPosition,
+                        out Quaternion savedModelRotation);
                     thisShip.SetPositionInfo(VirtualPosition);
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").GetPositionAndRotation(out Vector3 savedHitboxPosition, out Quaternion savedHitboxRotation);
+                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").GetPositionAndRotation(
+                        out Vector3 savedHitboxPosition,
+                        out Quaternion savedHitboxRotation);
                     thisShip.GetShipAllPartsTransform().SetPositionAndRotation(savedModelPosition,savedModelRotation);
                     thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").SetPositionAndRotation(savedHitboxPosition, savedHitboxRotation);
                 }
@@ -269,6 +94,13 @@ namespace AI.Helpers.VirtualBoard
         public VirtualBoard()
         {
             Ships = new();
+            Name = "";
+        }
+
+        public VirtualBoard(string name)
+        {
+            Ships = new();
+            Name = name;
         }
 
         public override void ActivateInternal()
@@ -281,12 +113,7 @@ namespace AI.Helpers.VirtualBoard
                 }
             }
 
-            ApplyVirtualPositions();
-        }
-
-        public override void RecoverActiveInternal()
-        {
-            ActivateInternal();
+            ApplyVirtualPositionsInternal();
         }
 
         public override void DeactivateInternal()
@@ -305,6 +132,16 @@ namespace AI.Helpers.VirtualBoard
             }
         }
 
+        public override void PauseActiveInternal()
+        {
+            DeactivateInternal();
+        }
+
+        public override void UnpauseActiveInternal()
+        {
+            ActivateInternal();
+        }
+
         /// <summary>
         /// Activate and push to vb stack.
         /// Short-circuit if ActiveVirtualBoard == this.
@@ -317,7 +154,7 @@ namespace AI.Helpers.VirtualBoard
                 return;
             }
 
-            VirtualBoardManager.ActivateAndPushToStack(this);
+            VirtualBoardManager.Activate(this);
         }
 
         /// <summary>
@@ -328,7 +165,7 @@ namespace AI.Helpers.VirtualBoard
         {
             if (VirtualBoardManager.ActiveVirtualBoard is null)
             {
-                VirtualBoardManager.ActivateAndPushToStack(this);
+                VirtualBoardManager.Activate(this);
             }
 
             return IsActive;
@@ -345,23 +182,26 @@ namespace AI.Helpers.VirtualBoard
                 return;
             }
 
-            VirtualBoardManager.PopVirtualBoardStack();
+            VirtualBoardManager.Deactivate(this);
         }
 
         public void ApplyVirtualPositions()
         {
             if (IsActive)
             {
-                foreach (GenericShip ship in Ships.Keys)
-                {
-                    Ships[ship].ApplyPosition(ship);
-                }
-
-                return;
+                ApplyVirtualPositionsInternal();
             }
             else
             {
                 throw new Exception("Attempt to apply positions of an inactive virtual board.");
+            }
+        }
+
+        private void ApplyVirtualPositionsInternal()
+        {
+            foreach (GenericShip ship in Ships.Keys)
+            {
+                Ships[ship].ApplyPosition(ship);
             }
         }
 
@@ -370,15 +210,15 @@ namespace AI.Helpers.VirtualBoard
         /// </summary>
         public void UpdateToReal(Func<GenericShip, T> newShipInitialiser)
         {
-            if (VirtualBoardManager.IsRealBoardActive)
+            if (VirtualBoardManager.IsVirtualRealBoardActive)
             {
-                VirtualBoardManager.UpdateRealBoard();
+                VirtualBoardManager.UpdateVirtualRealBoard();
             }
 
             List<GenericShip> shipsToRemove = new();
             foreach (GenericShip ship in Ships.Keys)
             {
-                if (!VirtualBoardManager.RealBoard.Ships.ContainsKey(ship))
+                if (!VirtualBoardManager.VirtualRealBoard.Ships.ContainsKey(ship))
                 {
                     shipsToRemove.Add(ship);
                 }
@@ -388,15 +228,15 @@ namespace AI.Helpers.VirtualBoard
                 Ships.Remove(ship);
             }
 
-            foreach (GenericShip ship in VirtualBoardManager.RealBoard.Ships.Keys)
+            foreach (GenericShip ship in VirtualBoardManager.VirtualRealBoard.Ships.Keys)
             {
                 if (Ships.ContainsKey(ship))
                 {
-                    Ships[ship].VirtualPosition = VirtualBoardManager.RealBoard.Ships[ship].VirtualPosition;
+                    Ships[ship].VirtualPosition = VirtualBoardManager.VirtualRealBoard.Ships[ship].VirtualPosition;
                 }
                 else
                 {
-                    Ships.Add(ship, new ShipInfo(VirtualBoardManager.RealBoard.Ships[ship].VirtualPosition, newShipInitialiser(ship)));
+                    Ships.Add(ship, new ShipInfo(VirtualBoardManager.VirtualRealBoard.Ships[ship].VirtualPosition, newShipInitialiser(ship)));
                 }
             }
         }
@@ -484,14 +324,14 @@ namespace AI.Helpers.VirtualBoard
             public ShipInterface UpdateToRealPosition(bool applyPosition)
             {
                 AssertShipExistsInRealBoard();
-                SetPosition(VirtualBoardManager.RealBoard.Ships[Ship].VirtualPosition, applyPosition);
+                SetPosition(VirtualBoardManager.VirtualRealBoard.Ships[Ship].VirtualPosition, applyPosition);
 
                 return this;
             }
 
             private void AssertShipExistsInRealBoard()
             {
-                if (!VirtualBoardManager.RealBoard.Ships.ContainsKey(Ship))
+                if (!VirtualBoardManager.VirtualRealBoard.Ships.ContainsKey(Ship))
                 {
                     throw new Exception("VirtualBoard.ShipInterface assert failed: AssertIsInRealBoard");
                 }
@@ -564,6 +404,226 @@ namespace AI.Helpers.VirtualBoard
             foreach (KeyValuePair<GenericShip, ShipInfo> pair in Ships)
             {
                 pair.Value.ReturnCollisions(pair.Key);
+            }
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+}
+
+namespace AI.Helpers.VirtualBoard
+{
+    public static class VirtualBoardManager
+    {
+        private static Stack<AbstractVirtualBoard> VirtualBoardStack;
+        /// <summary>
+        /// This holds a copy of all ship positions in the current board.
+        /// </summary>
+        public static VirtualRealBoardClass VirtualRealBoard;
+        public static AbstractVirtualBoard ActiveVirtualBoard { get { return VirtualBoardStack.Peek(); } }
+        public static bool IsVirtualRealBoardActive { get { return ReferenceEquals(ActiveVirtualBoard, VirtualRealBoard); } }
+
+        static VirtualBoardManager()
+        {
+            VirtualBoardStack = new();
+            VirtualRealBoard = new VirtualRealBoardClass("VirtualRealBoard");
+        }
+
+        public static void InitializeForGame()
+        {
+            VirtualBoardStack.Clear();
+            VirtualBoardStack.Push(VirtualRealBoard);
+            VirtualRealBoard.ActivateInternal();
+        }
+
+        public static void Activate(AbstractVirtualBoard virtualBoard)
+        {
+            AbstractVirtualBoard currentActiveVirtualBoard = VirtualBoardStack.Peek();
+            currentActiveVirtualBoard.PauseActiveInternal();
+            virtualBoard.ActivateInternal();
+            VirtualBoardStack.Push(virtualBoard);
+        }
+
+        public static void Deactivate(AbstractVirtualBoard virtualBoardToDeactivate)
+        {
+            if (ReferenceEquals(virtualBoardToDeactivate, VirtualRealBoard))
+            {
+                ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", "Cannot deactivate VirtualRealBoard.");
+            }
+            else
+            {
+                AbstractVirtualBoard currentActiveVirtualBoard = VirtualBoardStack.Pop();
+                if (ReferenceEquals(currentActiveVirtualBoard, virtualBoardToDeactivate))
+                {
+                    virtualBoardToDeactivate.DeactivateInternal();
+                    VirtualBoardStack.Peek().UnpauseActiveInternal();
+                }
+                else // identify, log, and recover from error.
+                {
+                    Stack<AbstractVirtualBoard> virtualBoardsCheckedStack = new();
+                    virtualBoardsCheckedStack.Push(currentActiveVirtualBoard);
+
+                    while (VirtualBoardStack.TryPop(out AbstractVirtualBoard virtualBoardToCheck))
+                    {
+                        if (ReferenceEquals(virtualBoardToDeactivate, virtualBoardToCheck))
+                        {
+                            string errorMessage = $"Attempted to deactivate {virtualBoardToDeactivate} while virtual boards above where still active. "
+                                + $"Attempted to recover by deactivating all virtual boards above. Virtual boards deactivated: [ ";
+
+                            Queue<string> errorsToLogAfterErrorMessage = new();
+
+                            while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoardAboveToDeactivate))
+                            {
+                                errorMessage += $"{virtualBoardAboveToDeactivate}, ";
+
+                                try
+                                {
+                                    virtualBoardAboveToDeactivate.DeactivateInternal();
+                                }
+                                catch
+                                {
+                                    errorsToLogAfterErrorMessage.Enqueue($"{virtualBoardAboveToDeactivate} did not deactivate correctly");
+                                }
+                            }
+
+                            errorMessage += " ]";
+
+                            ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessage);
+
+                            while (errorsToLogAfterErrorMessage.TryDequeue(out string errorMessageToLog))
+                            {
+                                ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessageToLog);
+                            }
+
+                            return;
+                        }
+                        else
+                        {
+                            virtualBoardsCheckedStack.Push(virtualBoardToCheck);
+                        }
+                    }
+                    
+                    while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoard))
+                    {
+                        VirtualBoardStack.Push(virtualBoard);
+                    }
+
+                    ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"Attempted to deactivate {virtualBoardToDeactivate}, no matching "
+                        + $"virtual board found in stack. Attempted recovery by calling .DeactivateInernal() on {virtualBoardToDeactivate} without "
+                        + $"changing VirtualBoardStack.");
+
+                    try
+                    {
+                        virtualBoardToDeactivate.DeactivateInternal();
+                    }
+                    catch
+                    {
+                        ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"{virtualBoardToDeactivate} did not deactivate correctly");
+                    }
+                }
+            }
+        }
+
+        public static void UpdateVirtualRealBoard()
+        {
+            if (ReferenceEquals(ActiveVirtualBoard, VirtualRealBoard))
+            {
+                UpdateVirtualRealBoardInternal();
+            }
+        }
+
+        private static void UpdateVirtualRealBoardInternal()
+        {
+            List<GenericShip> shipsToRemove = new();
+            foreach (GenericShip ship in VirtualRealBoard.Ships.Keys)
+            {
+                if (ship.IsDestroyed)
+                {
+                    shipsToRemove.Add(ship);
+                    continue;
+                }
+            }
+
+            foreach (GenericShip ship in shipsToRemove)
+            {
+                VirtualRealBoard.Ships.Remove(ship);
+            }
+
+            foreach (KeyValuePair<GenericShip, VirtualBoard<EmptyClass>.ShipInfo> shipValuePair in VirtualRealBoard.Ships)
+            {
+                shipValuePair.Value.VirtualPosition = shipValuePair.Key.GetPositionInfo();
+            }
+
+            foreach (GenericShip ship in Roster.AllShips.Values)
+            {
+                if (!VirtualRealBoard.Ships.ContainsKey(ship))
+                {
+                    VirtualRealBoard.Ships.Add(ship, new VirtualBoard<EmptyClass>.ShipInfo(ship.GetPositionInfo(), new()));
+                }
+            }
+        }
+
+        public class VirtualRealBoardClass : VirtualBoard<EmptyClass>
+        {
+            public VirtualRealBoardClass(string name) : base(name) {  }
+
+            public override void PauseActiveInternal()
+            {
+                UpdateVirtualRealBoardInternal();
+                base.PauseActiveInternal();
+            }
+        }
+
+        public abstract class AbstractVirtualBoard
+        {
+            /// <summary>
+            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// </summary>
+            public abstract void ActivateInternal();
+            /// <summary>
+            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// </summary>
+            public abstract void DeactivateInternal();
+            /// <summary>
+            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// </summary>
+            public abstract void PauseActiveInternal();
+            /// <summary>
+            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// </summary>
+            public abstract void UnpauseActiveInternal();
+        }
+
+        public class EmptyClass
+        {
+            
+        }
+
+        public static class DebugUtils
+        {
+            /// <summary>
+            /// result[0] is the top (active) virtual board, result[1] is the second top virtual board, result.Last() is the virtual real board.
+            /// </summary>
+            public static List<AbstractVirtualBoard> GetVirtualBoardStack()
+            {
+                Stack<AbstractVirtualBoard> secondVirtualBoardStack = new();
+                List<AbstractVirtualBoard> result = new();
+
+                while (VirtualBoardStack.TryPop(out AbstractVirtualBoard virtualBoard))
+                {
+                    secondVirtualBoardStack.Push(virtualBoard);
+                    result.Add(virtualBoard);
+                }
+
+                while (secondVirtualBoardStack.TryPop(out AbstractVirtualBoard virtualBoard))
+                {
+                    VirtualBoardStack.Push(virtualBoard);
+                }
+
+                return result;
             }
         }
     }

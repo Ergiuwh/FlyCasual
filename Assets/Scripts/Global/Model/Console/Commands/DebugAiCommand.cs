@@ -2,6 +2,10 @@
 
 using System.Collections.Generic;
 using AI.Helpers;
+using AI.Helpers.Types;
+using AI.Helpers.VirtualBoard;
+using AI.Helpers.VirtualBoard.Debug;
+using Players;
 
 namespace CommandsList
 {
@@ -13,7 +17,8 @@ namespace CommandsList
             Description = "Utilities and settings for debuging AIs.\n" 
                         + "debugai set movementshowplanning:<bool_input>\n"
                         + "debugai copyplanninglog [count:<number>]\n"
-                        + "[TODO] debugai showvirtualboardlog [player:<1/2>]\n"
+                        + "debugai showvirtualboardlog [player:<1/2>]\n"
+                        + "debugai showvirtualboardstack\n"
                         + "where bool_input: (on/true/enable), (off/false/disable)";
 
             Console.AddAvailableCommand(this);
@@ -23,7 +28,10 @@ namespace CommandsList
         {
             bool hasSet = parameters.ContainsKey("set");
             bool hasCopyPlanningLog = parameters.ContainsKey("copyplanninglog");
-            if (hasSet && hasCopyPlanningLog)
+            bool hasShowVirtualBoardLog = parameters.ContainsKey("showvirtualboardlog");
+            bool hasShowVirtualBoardStack = parameters.ContainsKey("showvirtualboardstack");
+            int numberOfParams = (hasSet?1:0) + (hasCopyPlanningLog?1:0) + (hasShowVirtualBoardLog?1:0) + (hasShowVirtualBoardStack?1:0);
+            if (numberOfParams != 1)
             {
                 ShowHelp();
                 return;
@@ -80,10 +88,45 @@ namespace CommandsList
 
                 Console.Write("Planning log coppied to clipboard.");
             }
-            else
+            else if (hasShowVirtualBoardLog)
             {
-                ShowHelp();
-                return;
+                PlayerNo playerNo;
+                if (parameters.TryGetValue("player", out string player))
+                {
+                    switch (player)
+                    {
+                        case "1":
+                            playerNo = PlayerNo.Player1;
+                            break;
+                        case "2":
+                            playerNo = PlayerNo.Player2;
+                            break;
+                        default:
+                            ShowHelp();
+                            return;
+                    }
+                }
+                else
+                {
+                    playerNo = PlayerNo.Player2;
+                }
+
+                Result<int, string> result = VirtualBoardLog.Instance.TryStartDisplay(playerNo);
+                
+                if (result.TryGetError(out string? error))
+                {
+                    Console.Write(error);
+                    ShowHelp();
+                }
+            }
+            else if (hasShowVirtualBoardStack)
+            {
+                Console.Write($"debugai showvirtualboardstack");
+
+                foreach (VirtualBoardManager.AbstractVirtualBoard item in VirtualBoardManager.DebugUtils.GetVirtualBoardStack())
+                {
+                    Console.Write(item.ToString());
+                }
             }
         }
     }

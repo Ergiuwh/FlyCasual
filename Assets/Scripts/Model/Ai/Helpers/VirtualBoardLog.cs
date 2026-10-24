@@ -10,7 +10,7 @@ namespace AI.Helpers.VirtualBoard.Debug
 {
     public class VirtualBoardLog
     {
-        public List<Step> Steps;
+        private List<Step> Steps;
 
         public VirtualBoardLog()
         {
@@ -19,20 +19,27 @@ namespace AI.Helpers.VirtualBoard.Debug
 
         public void AddSingleMoveStep(string name, GenericShip ship, ShipPositionInfo positionInfo)
         {
-            Step step = new(name);
-            step.Instructions.Add(new Instruction(ship, positionInfo));
-            Steps.Add(step);
+            AddStep(new StepBuilder(name).SingleMove(ship, positionInfo));
         }
 
         public void AddUpdateToVirtualBoard<T>(string name, VirtualBoard<T> virtualBoard) where T : class
         {
-            Step step = new(name);
-            foreach (KeyValuePair<GenericShip, VirtualBoard<T>.ShipInfo> shipInfo in virtualBoard.Ships)
-            {
-                step.Instructions.Add(new(shipInfo.Key, shipInfo.Value.VirtualPosition));
-            }
+            AddStep(new StepBuilder(name).UpdateToVirtualBoard(virtualBoard));
+        }
 
+        public void AddToggleCollisions(string name, GenericShip ship, bool value)
+        {
+            AddStep(new StepBuilder(name).ToggleCollisions(ship, value));
+        }
+
+        public void AddStep(Step step)
+        {
             Steps.Add(step);
+        }
+
+        public void AddStep(StepBuilder stepBuilder)
+        {
+            Steps.Add(stepBuilder.Build());
         }
 
         public class Step
@@ -71,7 +78,7 @@ namespace AI.Helpers.VirtualBoard.Debug
         private static class DisplayManager
         {
             private static IEnumerator<Step>? Iter;
-            private static VirtualBoardNoData DisplayVirtualBoard = new();
+            private static VirtualBoardNoData DisplayVirtualBoard = new("VirtualBoardLog display unset");
             private static bool SavedDebugMovementShowPlanning;
 
             public static bool Start(VirtualBoardLog virtualBoardLog)
@@ -83,13 +90,14 @@ namespace AI.Helpers.VirtualBoard.Debug
                 else
                 {
                     Iter = virtualBoardLog.Steps.GetEnumerator();
-                    DisplayVirtualBoard = new();
+                    DisplayVirtualBoard = new("VirtualBoardLog.DisplayVirtualBoard");
+                    DisplayVirtualBoard.UpdateToReal();
                     DisplayVirtualBoard.Activate();
 
                     SavedDebugMovementShowPlanning = DebugManager.DebugMovementShowPlanning;
                     DebugManager.DebugMovementShowPlanning = true;
 
-                    Iter.MoveNext();
+                    Next();
                     return true;
                 }
             }
@@ -98,36 +106,38 @@ namespace AI.Helpers.VirtualBoard.Debug
             {
                 if (Iter is null)
                 {
-                    Console.Write("VirtualBoardLog.DisplayManager: Next while Iter is null.", true, "red");
+                    ConsoleHelpers.Error("VirtualBoardLog.DisplayManager", "Next while Iter is null.");
                     return false;
                 }
 
-                Step value = Iter.Current;
-
-                foreach (Instruction instruction in value.Instructions)
+                if (Iter.MoveNext())
                 {
-                    if (instruction.PositionInfo.Item1) {
-                        DisplayVirtualBoard.GetShipInterface(instruction.Ship).SetPosition(instruction.PositionInfo.Item2);
+                    foreach (Instruction instruction in Iter.Current.Instructions)
+                    {
+                        if (instruction.PositionInfo.Item1) {
+                            DisplayVirtualBoard.GetShipInterface(instruction.Ship).SetPosition(instruction.PositionInfo.Item2);
+                        }
+
+                        if (instruction.EnabledCollisions.Item1) {
+                            DisplayVirtualBoard.GetShipInterface(instruction.Ship).ToggleCollisions(instruction.EnabledCollisions.Item2);
+                        }
                     }
 
-                    if (instruction.EnabledCollisions.Item1) {
-                        DisplayVirtualBoard.GetShipInterface(instruction.Ship).ToggleCollisions(instruction.EnabledCollisions.Item2);
-                    }
+                    Messages.ShowInfoToHuman(Iter.Current.Name, true);
+
+                    return true;
                 }
-
-                bool result = Iter.MoveNext();
-
-                if (result == false)
+                else
                 {
                     End();
+                    return false;
                 }
-
-                return result;
             }
 
             public static void End()
             {
                 DebugManager.DebugMovementShowPlanning = SavedDebugMovementShowPlanning;
+                Iter?.Dispose();
                 Iter = null;
                 DisplayVirtualBoard.Deactivate();
             }
@@ -141,7 +151,7 @@ namespace AI.Helpers.VirtualBoard.Debug
                     return false;
                 }
 
-                VirtualBoardLogDisplaySubPhase subPhase = Phases.StartTemporarySubPhaseNew<VirtualBoardLogDisplaySubPhase>("VirtualBoardLogDisplaySubPhase", DisplayManager.End);
+                VirtualBoardLogDisplaySubPhase subPhase = Phases.StartTemporarySubPhaseNew<VirtualBoardLogDisplaySubPhase>("SingleVirtualBoardLogDisplaySubPhase", delegate {  });
                 subPhase.Start();
 
                 return true;
@@ -150,33 +160,35 @@ namespace AI.Helpers.VirtualBoard.Debug
 
         private class VirtualBoardLogDisplaySubPhase : GenericSubPhase
         {
-            public override void Start()
-            {
-                SingleVirtualBoardLogDisplaySubPhase subPhase = Phases.StartTemporarySubPhaseNew<SingleVirtualBoardLogDisplaySubPhase>("SingleVirtualBoardLogDisplaySubPhase", delegate {  });
-                subPhase.Start();
-            }
-
-            public override List<GameCommandTypes> AllowedGameCommandTypes { get { return new List<GameCommandTypes>() { GameCommandTypes.PressSkip }; } }
-        }
-
-        private class SingleVirtualBoardLogDisplaySubPhase : GenericSubPhase
-        {
-            public SingleVirtualBoardLogDisplaySubPhase()
+            public VirtualBoardLogDisplaySubPhase()
             {
                 
             }
 
             public override void Start()
             {
+                UI.ShowNextButton();
+                UI.HighlightNextButton();
 
+                
             }
 
-            public override void Next()
+            public override void NextButton()
             {
                 if (DisplayManager.Next()) {
-                    SingleVirtualBoardLogDisplaySubPhase nextSubPhase = Phases.StartTemporarySubPhaseNew<SingleVirtualBoardLogDisplaySubPhase>("SingleVirtualBoardLogDisplaySubPhase", delegate {  });
+                    VirtualBoardLogDisplaySubPhase nextSubPhase = Phases.StartTemporarySubPhaseNew<VirtualBoardLogDisplaySubPhase>("SingleVirtualBoardLogDisplaySubPhase", delegate {  });
                     nextSubPhase.Start();
                 }
+                else
+                {
+                    FinishSubPhase();
+                }
+            }
+
+            private void FinishSubPhase()
+            {
+                UI.HideNextButton();
+                Phases.FinishSubPhase(typeof(VirtualBoardLogDisplaySubPhase));
             }
 
             public override List<GameCommandTypes> AllowedGameCommandTypes { get { return new List<GameCommandTypes>() { GameCommandTypes.PressNext }; } }
@@ -187,20 +199,14 @@ namespace AI.Helpers.VirtualBoard.Debug
         {
             public static Dictionary<PlayerNo, VirtualBoardLog> Logs = new();
 
-            public static VirtualBoardLog CurrentLog
-            {
-                get
-                {
-                    return Logs[Phases.CurrentPhasePlayer];
-                }
-            }
+            public static VirtualBoardLog CurrentLog { get { return Logs[Phases.CurrentPhasePlayer]; } }
 
             public static void InitializeLogForPlayer(PlayerNo playerNo)
             {
                 Logs.Add(playerNo, new VirtualBoardLog());
             }
 
-            public static Result<int,string> StartDisplay(PlayerNo playerNo)
+            public static Result<int,string> TryStartDisplay(PlayerNo playerNo)
             {
                 if (Logs.TryGetValue(playerNo, out VirtualBoardLog log))
                 {
@@ -217,6 +223,61 @@ namespace AI.Helpers.VirtualBoard.Debug
                 {
                     return new Result<int, string>(errorValue: $"PlayerNo {playerNo} does not exist in VirtualBoardLog.Instance.Logs");
                 }
+            }
+
+            /// <summary>
+            /// Reference to the old log still point to the old log.
+            /// </summary>
+            public static void ClearLogForPlayer(PlayerNo playerNo)
+            {
+                Logs[playerNo] = new();
+            }
+        }
+
+        public class StepBuilder
+        {
+            private List<Instruction> Instructions;
+            private string Name;
+
+            public StepBuilder(string name)
+            {
+                Name = name;
+                Instructions = new();
+            }
+
+            public StepBuilder SingleMove(GenericShip ship, ShipPositionInfo positionInfo)
+            {
+                Instructions.Add(new Instruction(ship, positionInfo: positionInfo));
+
+                return this;
+            }
+
+            public StepBuilder ToggleCollisions(GenericShip ship, bool value)
+            {
+                Instructions.Add(new Instruction(ship, enabledCollisions: value));
+
+                return this;
+            }
+
+            public StepBuilder UpdateToVirtualBoard<T>(VirtualBoard<T> virtualBoard) where T : class
+            {
+                foreach (KeyValuePair<GenericShip, VirtualBoard<T>.ShipInfo> shipInfo in virtualBoard.Ships)
+                {
+                    Instructions.Add(new(shipInfo.Key, positionInfo: shipInfo.Value.VirtualPosition));
+                    Instructions.Add(new(shipInfo.Key, enabledCollisions: shipInfo.Value.CollisionsEnabled));
+                }
+
+                return this;
+            }
+
+            public Step Build()
+            {
+                Step step = new(Name)
+                {
+                    Instructions = Instructions
+                };
+
+                return step;
             }
         }
     }

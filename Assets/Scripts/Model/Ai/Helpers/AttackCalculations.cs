@@ -13,11 +13,6 @@ namespace AI.Helpers.AttackCalculations
         /// <summary>
         /// Includes Focus, Lock
         /// </summary>
-        /// <param name="shotInfo"></param>
-        /// <param name="attacker"></param>
-        /// <param name="defender"></param>
-        /// <param name="weapon"></param>
-        /// <returns></returns>
         public static float AverageHits(ShotInfo shotInfo, GenericShip attacker, GenericShip defender, IShipWeapon weapon)
         {
             const float attackDiceChanceUnmodified = 0.5f;
@@ -46,11 +41,6 @@ namespace AI.Helpers.AttackCalculations
         /// <summary>
         /// Includes Focus, Lock.
         /// </summary>
-        /// <param name="shotInfo"></param>
-        /// <param name="attacker"></param>
-        /// <param name="defender"></param>
-        /// <param name="weapon"></param>
-        /// <returns></returns>
         public static float AverageCrits(ShotInfo shotInfo, GenericShip attacker, GenericShip defender, IShipWeapon weapon)
         {
             const float potentialCritsNoReroll = 0.125f;
@@ -77,10 +67,6 @@ namespace AI.Helpers.AttackCalculations
         /// <summary>
         /// Includes Focus, Evade
         /// </summary>
-        /// <param name="shotInfo"></param>
-        /// <param name="defender"></param>
-        /// <param name="weapon"></param>
-        /// <returns></returns>
         public static float AverageEvades(ShotInfo shotInfo, GenericShip defender, IShipWeapon weapon)
         {
             const float defenceDiceChanceUnmodified = 0.375f;
