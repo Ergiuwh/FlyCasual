@@ -5,99 +5,6 @@ using System.Collections.Generic;
 namespace AI.Helpers
 {
     public static class AiPlanningLog {
-        private class RecursiveStringList {
-            public class RecursiveStringListNode
-            {
-                public string Name { get; private set; }
-                public List<RecursiveStringListNode>? Children;
-
-                public RecursiveStringListNode(string name, bool allowChildren)
-                {
-                    Name = name;
-                    if (allowChildren) {
-                        Children = new();
-                    }
-                    else
-                    {
-                        Children = null;
-                    }
-                }
-
-                public void AddString(string value)
-                {
-                    if (Children == null)
-                    {
-                        return;
-                    }
-
-                    RecursiveStringListNode stringNode = new(value, false);
-                    Children.Add(stringNode);
-                }
-
-                public void CreateChildNode(string name)
-                {
-                    if (Children == null)
-                    {
-                        return;
-                    }
-
-                    RecursiveStringListNode toAdd = new(name, true);
-                    Children.Add(toAdd);
-                }
-            }
-
-            public RecursiveStringListNode HeadNode { get; private set; }
-            private List<RecursiveStringListNode> activePath;
-
-            public RecursiveStringList(string HeadNodeName)
-            {
-                HeadNode = new RecursiveStringListNode(HeadNodeName, true);
-                activePath = new();
-            }
-
-            private RecursiveStringListNode GetActiveNode()
-            {
-                if (activePath.Count == 0)
-                {
-                    return HeadNode;
-                }
-                else
-                {
-                    return activePath[^1];
-                }
-            }
-
-            public void AddString(string value)
-            {
-                GetActiveNode().AddString(value);
-            }
-
-            public void OpenGroup(string name)
-            {
-                RecursiveStringListNode activeNode = GetActiveNode();
-                if (activeNode.Children is null)
-                {
-                    // This should never happen.
-                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup", "an error occurred.");
-                    return;
-                }
-
-                activeNode.CreateChildNode(name);
-                activePath.Add(activeNode.Children[^1]);
-            }
-
-            public void CloseGroup()
-            {
-                if (activePath.Count == 0)
-                {
-                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup", "attempt to close group when none are open.");
-                    return;
-                }
-
-                activePath.RemoveAt(activePath.Count - 1);
-            }
-        }
-
         private static List<RecursiveStringList> Log { get; set; } = new();
         private static int roundsStoredCount = 2;
         public static int RoundsStoredCount
@@ -106,14 +13,22 @@ namespace AI.Helpers
             {
                 return roundsStoredCount;
             }
-            set { roundsStoredCount = value; }
+            set
+            {
+                if (value < roundsStoredCount)
+                {
+                    Log.RemoveRange(0, roundsStoredCount - value);
+                }
+
+                roundsStoredCount = value;
+            }
         }
 
         public static bool DoLogging
         {
             get
             {
-                return roundsStoredCount != 0;
+                return RoundsStoredCount != 0;
             }
         }
 
@@ -245,8 +160,102 @@ namespace AI.Helpers
         public static void Initialize()
         {
             Log = new();
+            RoundsStoredCount = DebugManager.DoAiLogging ? 2 : 0;
             StartNewRound("setup");
             Phases.Events.OnRoundStart += delegate { StartNewRound($"Round {Phases.RoundCounter}"); };
+        }
+
+        private class RecursiveStringList {
+            public class RecursiveStringListNode
+            {
+                public string Name { get; private set; }
+                public List<RecursiveStringListNode>? Children;
+
+                public RecursiveStringListNode(string name, bool allowChildren)
+                {
+                    Name = name;
+                    if (allowChildren) {
+                        Children = new();
+                    }
+                    else
+                    {
+                        Children = null;
+                    }
+                }
+
+                public void AddString(string value)
+                {
+                    if (Children == null)
+                    {
+                        return;
+                    }
+
+                    RecursiveStringListNode stringNode = new(value, false);
+                    Children.Add(stringNode);
+                }
+
+                public void CreateChildNode(string name)
+                {
+                    if (Children == null)
+                    {
+                        return;
+                    }
+
+                    RecursiveStringListNode toAdd = new(name, true);
+                    Children.Add(toAdd);
+                }
+            }
+
+            public RecursiveStringListNode HeadNode { get; private set; }
+            private List<RecursiveStringListNode> activePath;
+
+            public RecursiveStringList(string HeadNodeName)
+            {
+                HeadNode = new RecursiveStringListNode(HeadNodeName, true);
+                activePath = new();
+            }
+
+            private RecursiveStringListNode GetActiveNode()
+            {
+                if (activePath.Count == 0)
+                {
+                    return HeadNode;
+                }
+                else
+                {
+                    return activePath[^1];
+                }
+            }
+
+            public void AddString(string value)
+            {
+                GetActiveNode().AddString(value);
+            }
+
+            public void OpenGroup(string name)
+            {
+                RecursiveStringListNode activeNode = GetActiveNode();
+                if (activeNode.Children is null)
+                {
+                    // This should never happen.
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.OpenGroup", "an error occurred.");
+                    return;
+                }
+
+                activeNode.CreateChildNode(name);
+                activePath.Add(activeNode.Children[^1]);
+            }
+
+            public void CloseGroup()
+            {
+                if (activePath.Count == 0)
+                {
+                    ConsoleHelpers.Error("DebugManager.AiPlanningLog.RecursiveStringList.CloseGroup", "attempt to close group when none are open.");
+                    return;
+                }
+
+                activePath.RemoveAt(activePath.Count - 1);
+            }
         }
     }
 }

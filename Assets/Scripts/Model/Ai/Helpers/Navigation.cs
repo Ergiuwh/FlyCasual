@@ -40,6 +40,35 @@ namespace AI.Helpers.Navigation
             return bestTurnManeuvers;
         }
 
+        public static List<string> GetShortestNotRedTurnManeuvers(GenericShip ship)
+        {
+            List<string> bestTurnManeuvers = new();
+
+            ManeuverHolder bestLeftTurnManeuver = ship.GetManeuverHolders()
+                .Where(n =>
+                    n.Bearing == ManeuverBearing.Turn
+                    && n.Direction == ManeuverDirection.Left
+                    && n.ColorComplexity != MovementComplexity.Complex
+                )
+                .OrderBy(n => n.SpeedIntUnsigned)
+                .FirstOrDefault();
+            if(bestLeftTurnManeuver.Bearing == ManeuverBearing.Turn)
+                bestTurnManeuvers.Add(bestLeftTurnManeuver.ToString());
+
+            ManeuverHolder bestRightTurnManeuver = ship.GetManeuverHolders()
+                .Where(n =>
+                    n.Bearing == ManeuverBearing.Turn
+                    && n.Direction == ManeuverDirection.Right
+                    && n.ColorComplexity != MovementComplexity.Complex
+                )
+                .OrderBy(n => n.SpeedIntUnsigned)
+                .FirstOrDefault();
+            if (bestRightTurnManeuver.Bearing == ManeuverBearing.Turn)
+                bestTurnManeuvers.Add(bestRightTurnManeuver.ToString());
+
+            return bestTurnManeuvers;
+        }
+
 
         public static IEnumerator ApplyManeuverOnVirtualBoard<T>(VirtualBoard<T> virtualBoard, GenericShip ship, Maneuver maneuver, bool isSimple = true) where T : class {
             GenericMovement movement = CreateMovement(ship, maneuver, isSimple);

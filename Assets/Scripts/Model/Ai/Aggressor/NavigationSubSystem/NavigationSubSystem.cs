@@ -65,7 +65,10 @@ namespace AI.Aggressor
                     { PlayerNo.Player2, new VirtualBoard<AggressorVirtualShipInfo>("Aggressor main") }
                 };
 
-                VirtualBoardLog.Instance.InitializeLogForPlayer(CurrentPlayer.PlayerNo);
+                if (DebugManager.DoAiLogging)
+                {
+                    VirtualBoardLog.Instance.InitializeLogForPlayer(CurrentPlayer.PlayerNo);
+                }
             }
             else
             {
@@ -92,7 +95,7 @@ namespace AI.Aggressor
             VirtualBoard.Activate();
             VirtualBoard.UpdateToReal(NewShipInitialiser);
             VirtualBoard.ApplyVirtualPositions();
-            VirtualBoardLog.Instance.CurrentLog.AddUpdateToVirtualBoard("inital", VirtualBoard);
+            VirtualBoardLog.Instance.CurrentLog?.AddUpdateToVirtualBoard("inital", VirtualBoard);
 
             ShowCalculationsStart();
         }
@@ -131,12 +134,12 @@ namespace AI.Aggressor
 
         private static void VirtualBoardLogAddPosition(string name, GenericShip ship)
         {
-            VirtualBoardLog.Instance.CurrentLog.AddSingleMoveStep(name, ship, VirtualBoard.Ships[ship].VirtualPosition);
+            VirtualBoardLog.Instance.CurrentLog?.AddSingleMoveStep(name, ship, VirtualBoard.Ships[ship].VirtualPosition);
         }
 
         private static void VirtualBoardLogAddUpdateToVirtualBoard(string name)
         {
-            VirtualBoardLog.Instance.CurrentLog.AddUpdateToVirtualBoard(name, VirtualBoard);
+            VirtualBoardLog.Instance.CurrentLog?.AddUpdateToVirtualBoard(name, VirtualBoard);
         }
 
         private static IEnumerator FirstPredictionRound()
@@ -163,6 +166,7 @@ namespace AI.Aggressor
                     ConsoleHelpers.Error("AI.Aggressor.NavigationSubSystem.SecondPredictionRound", $"plannedManeuver is null. Recovered by using {DefaultManeuver}.");
                 }
 
+                VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
                 yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                     VirtualBoard,
                     ship,
@@ -191,6 +195,7 @@ namespace AI.Aggressor
                         ConsoleHelpers.Error("AI.Aggressor.NavigationSubSystem.ThirdPredictionRound", $"plannedManeuver is null. Recovered by using {DefaultManeuver}.");
                     }
 
+                    VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
                     yield return NavFunctions.ApplyManeuverOnVirtualBoard(
                         VirtualBoard,
                         ship,
@@ -226,12 +231,14 @@ namespace AI.Aggressor
                 Selection.ThisShip = ship;
             }
 
-            VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
+            VirtualBoardNoData temporaryVirtualBoard = new("NavigationSubSystem.PredictBestManeuverForShipRoundTwo: tempVirtualBoard");
+            temporaryVirtualBoard.UpdateToVirtualBoard(VirtualBoard);
+            temporaryVirtualBoard.Activate();
 
             int indexOfShipInOrderOfActivation = OrderOfActivation.IndexOf(ship);
             foreach (GenericShip item in OrderOfActivation.GetRange(indexOfShipInOrderOfActivation, OrderOfActivation.Count - indexOfShipInOrderOfActivation))
             {
-                VirtualBoard.GetShipInterface(item).RemoveCollisions();
+                temporaryVirtualBoard.GetShipInterface(item).UpdateToRealPosition();
             }
 
             yield return BatchedMovementPredicitionHelper.Calculate(
@@ -240,7 +247,7 @@ namespace AI.Aggressor
                 predictionType: MovementPrediction.PredictionType.EndpointInfo);
             Dictionary<string, MovementPrediction> finalPredictions = BatchedMovementPredicitionHelper.Predictions;
 
-            VirtualBoard.ReturnAllCollisions();
+            temporaryVirtualBoard.Deactivate();
 
             VirtualBoardLogAddUpdateToVirtualBoard("Start predict best maneuver (round 2)");
 
@@ -258,12 +265,14 @@ namespace AI.Aggressor
                 Selection.ThisShip = ship;
             }
 
-            VirtualBoard.GetShipInterface(ship).UpdateToRealPosition();
+            VirtualBoardNoData temporaryVirtualBoard = new("NavigationSubSystem.PredictBestManeuverForShipRoundTwo: tempVirtualBoard");
+            temporaryVirtualBoard.UpdateToVirtualBoard(VirtualBoard);
+            temporaryVirtualBoard.Activate();
 
             int indexOfShipInOrderOfActivation = OrderOfActivation.IndexOf(ship);
             foreach (GenericShip item in OrderOfActivation.GetRange(indexOfShipInOrderOfActivation, OrderOfActivation.Count - indexOfShipInOrderOfActivation))
             {
-                VirtualBoard.GetShipInterface(item).RemoveCollisions();
+                temporaryVirtualBoard.GetShipInterface(item).UpdateToRealPosition();
             }
 
             Dictionary<string, MovementPrediction> finalPredictions = new();
@@ -295,7 +304,7 @@ namespace AI.Aggressor
                 finalPredictions.Add(item.Key, item.Value);
             }
 
-            VirtualBoard.ReturnAllCollisions();
+            temporaryVirtualBoard.Deactivate();
 
             VirtualBoardLogAddUpdateToVirtualBoard("Start predict best maneuver (round 3)");
 
@@ -503,7 +512,7 @@ namespace AI.Aggressor
 
             bool HasAnyManeuverWithoutOffBoardFinish = false;
 
-            foreach (string turnManeuver in NavFunctions.GetShortestTurnManeuvers(ship))
+            foreach (string turnManeuver in NavFunctions.GetShortestNotRedTurnManeuvers(ship))
             {
                 MovementPrediction prediction = NavFunctions.PredictFinalPosition(ship, turnManeuver);
 

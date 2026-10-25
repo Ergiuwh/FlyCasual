@@ -89,6 +89,17 @@ public static class DebugManager
         set { debugDamage = value; }
     }
 
+    private static bool doAiLogging = true;
+    public static bool DoAiLogging
+    {
+        get
+        {
+            if (FullDebug) return true;
+            return doAiLogging;
+        }
+        set { doAiLogging = value; }
+    }
+
     public static void Initialize()
     {
         AI.Helpers.AiPlanningLog.Initialize();

@@ -42,7 +42,7 @@ public class GameManagerScript : MonoBehaviour {
         Triggers.Initialize();
         yield return DamageDecks.Initialize();
         DebugManager.Initialize();
-        VirtualBoardManager.InitializeForGame();
+        VirtualBoardManager.Initialize();
 
         GameMode.CurrentGameMode.StartBattle();
     }

@@ -31,6 +31,11 @@ namespace AI.Helpers.VirtualBoard
         {
             UpdateToReal(a => new());
         }
+
+        public void UpdateToVirtualBoard<T1>(VirtualBoard<T1> virtualBoard) where T1 : class
+        {
+            UpdateToVirtualBoard(a => new(), virtualBoard);
+        }
     }
 
     public struct ActiveVirtualBoardNoData

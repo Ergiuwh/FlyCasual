@@ -167,10 +167,11 @@ namespace AI.Helpers.VirtualBoard.Debug
 
             public override void Start()
             {
+                IsTemporary = true;
+
                 UI.ShowNextButton();
                 UI.HighlightNextButton();
-
-                
+                IsReadyForCommands = true;
             }
 
             public override void NextButton()
@@ -199,7 +200,7 @@ namespace AI.Helpers.VirtualBoard.Debug
         {
             public static Dictionary<PlayerNo, VirtualBoardLog> Logs = new();
 
-            public static VirtualBoardLog CurrentLog { get { return Logs[Phases.CurrentPhasePlayer]; } }
+            public static VirtualBoardLog? CurrentLog { get { return Logs.GetValueOrDefault(Phases.CurrentPhasePlayer); } }
 
             public static void InitializeLogForPlayer(PlayerNo playerNo)
             {
