@@ -32,7 +32,19 @@ public static class DebugManager
 
     public static bool DebugMovementShowTempBases; // = true;
     public static bool DebugMovementDestroyTempBasesLater; // = true;
-    public static bool DebugMovementShowPlanning; // = true;
+    private static bool debugMovementShowPlanning; // = true;
+    public static bool DebugMovementShowPlanning
+    {
+        get
+        {
+            return debugMovementShowPlanning;
+        }
+        set
+        {
+            debugMovementShowPlanning = value;
+            AI.Helpers.VirtualBoard.VirtualBoardManager.AfterSetDebugMovementShowPlanning();
+        }
+    }
 
     public static bool FreeMode;
     public static bool BatchAiSquadTestingMode;

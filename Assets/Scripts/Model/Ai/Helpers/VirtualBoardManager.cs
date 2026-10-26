@@ -42,77 +42,76 @@ namespace AI.Helpers.VirtualBoard
             if (ReferenceEquals(virtualBoardToDeactivate, VirtualRealBoard))
             {
                 ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", "Cannot deactivate VirtualRealBoard.");
+                return;
             }
-            else
+
+            AbstractVirtualBoard currentActiveVirtualBoard = VirtualBoardStack.Pop();
+            if (ReferenceEquals(currentActiveVirtualBoard, virtualBoardToDeactivate))
             {
-                AbstractVirtualBoard currentActiveVirtualBoard = VirtualBoardStack.Pop();
-                if (ReferenceEquals(currentActiveVirtualBoard, virtualBoardToDeactivate))
+                virtualBoardToDeactivate.DeactivateInternal();
+                VirtualBoardStack.Peek().UnpauseActiveInternal();
+            }
+            else // identify, log, and recover from error.
+            {
+                Stack<AbstractVirtualBoard> virtualBoardsCheckedStack = new();
+                virtualBoardsCheckedStack.Push(currentActiveVirtualBoard);
+
+                while (VirtualBoardStack.TryPop(out AbstractVirtualBoard virtualBoardToCheck))
+                {
+                    if (ReferenceEquals(virtualBoardToDeactivate, virtualBoardToCheck))
+                    {
+                        string errorMessage = $"Attempted to deactivate {virtualBoardToDeactivate} while virtual boards above where still active. "
+                            + $"Attempted to recover by deactivating all virtual boards above. Virtual boards deactivated: [ ";
+
+                        Queue<string> errorsToLogAfterErrorMessage = new();
+
+                        while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoardAboveToDeactivate))
+                        {
+                            errorMessage += $"{virtualBoardAboveToDeactivate}, ";
+
+                            try
+                            {
+                                virtualBoardAboveToDeactivate.DeactivateInternal();
+                            }
+                            catch
+                            {
+                                errorsToLogAfterErrorMessage.Enqueue($"{virtualBoardAboveToDeactivate} did not deactivate correctly");
+                            }
+                        }
+
+                        errorMessage += " ]";
+
+                        ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessage);
+
+                        while (errorsToLogAfterErrorMessage.TryDequeue(out string errorMessageToLog))
+                        {
+                            ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessageToLog);
+                        }
+
+                        return;
+                    }
+                    else
+                    {
+                        virtualBoardsCheckedStack.Push(virtualBoardToCheck);
+                    }
+                }
+                
+                while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoard))
+                {
+                    VirtualBoardStack.Push(virtualBoard);
+                }
+
+                ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"Attempted to deactivate {virtualBoardToDeactivate}, no matching "
+                    + $"virtual board found in stack. Attempted recovery by calling .DeactivateInernal() on {virtualBoardToDeactivate} without "
+                    + $"changing VirtualBoardStack.");
+
+                try
                 {
                     virtualBoardToDeactivate.DeactivateInternal();
-                    VirtualBoardStack.Peek().UnpauseActiveInternal();
                 }
-                else // identify, log, and recover from error.
+                catch
                 {
-                    Stack<AbstractVirtualBoard> virtualBoardsCheckedStack = new();
-                    virtualBoardsCheckedStack.Push(currentActiveVirtualBoard);
-
-                    while (VirtualBoardStack.TryPop(out AbstractVirtualBoard virtualBoardToCheck))
-                    {
-                        if (ReferenceEquals(virtualBoardToDeactivate, virtualBoardToCheck))
-                        {
-                            string errorMessage = $"Attempted to deactivate {virtualBoardToDeactivate} while virtual boards above where still active. "
-                                + $"Attempted to recover by deactivating all virtual boards above. Virtual boards deactivated: [ ";
-
-                            Queue<string> errorsToLogAfterErrorMessage = new();
-
-                            while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoardAboveToDeactivate))
-                            {
-                                errorMessage += $"{virtualBoardAboveToDeactivate}, ";
-
-                                try
-                                {
-                                    virtualBoardAboveToDeactivate.DeactivateInternal();
-                                }
-                                catch
-                                {
-                                    errorsToLogAfterErrorMessage.Enqueue($"{virtualBoardAboveToDeactivate} did not deactivate correctly");
-                                }
-                            }
-
-                            errorMessage += " ]";
-
-                            ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessage);
-
-                            while (errorsToLogAfterErrorMessage.TryDequeue(out string errorMessageToLog))
-                            {
-                                ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", errorMessageToLog);
-                            }
-
-                            return;
-                        }
-                        else
-                        {
-                            virtualBoardsCheckedStack.Push(virtualBoardToCheck);
-                        }
-                    }
-                    
-                    while (virtualBoardsCheckedStack.TryPop(out AbstractVirtualBoard virtualBoard))
-                    {
-                        VirtualBoardStack.Push(virtualBoard);
-                    }
-
-                    ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"Attempted to deactivate {virtualBoardToDeactivate}, no matching "
-                        + $"virtual board found in stack. Attempted recovery by calling .DeactivateInernal() on {virtualBoardToDeactivate} without "
-                        + $"changing VirtualBoardStack.");
-
-                    try
-                    {
-                        virtualBoardToDeactivate.DeactivateInternal();
-                    }
-                    catch
-                    {
-                        ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"{virtualBoardToDeactivate} did not deactivate correctly");
-                    }
+                    ConsoleHelpers.Error("VirtualBoardManager.DeactivateVirtualBoard", $"{virtualBoardToDeactivate} did not deactivate correctly");
                 }
             }
         }
@@ -156,6 +155,11 @@ namespace AI.Helpers.VirtualBoard
             }
         }
 
+        public static void AfterSetDebugMovementShowPlanning()
+        {
+            ActiveVirtualBoard.UpdateDisplayInternal();
+        }
+
         public class VirtualRealBoardClass : VirtualBoard<EmptyClass>
         {
             public VirtualRealBoardClass(string name) : base(name) {  }
@@ -170,21 +174,26 @@ namespace AI.Helpers.VirtualBoard
         public abstract class AbstractVirtualBoard
         {
             /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// <para>You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.</para>
             /// </summary>
             public abstract void ActivateInternal();
             /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// <para>You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.</para>
             /// </summary>
             public abstract void DeactivateInternal();
             /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// <para>You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.</para>
             /// </summary>
             public abstract void PauseActiveInternal();
             /// <summary>
-            /// You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.
+            /// <para>You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.</para>
             /// </summary>
             public abstract void UnpauseActiveInternal();
+            /// <summary>
+            /// <para>You shouldn't call this outside of a implementing a virtual board or VirtualBoardManager.</para>
+            /// <para>You can assume this is active.</para>
+            /// </summary>
+            public abstract void UpdateDisplayInternal();
         }
 
         public class EmptyClass

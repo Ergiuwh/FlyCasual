@@ -61,8 +61,8 @@ namespace AI.Aggressor
             {
                 virtualBoards = new Dictionary<PlayerNo, VirtualBoard<AggressorVirtualShipInfo>>()
                 {
-                    { PlayerNo.Player1, new VirtualBoard<AggressorVirtualShipInfo>("Aggressor main") },
-                    { PlayerNo.Player2, new VirtualBoard<AggressorVirtualShipInfo>("Aggressor main") }
+                    { PlayerNo.Player1, new VirtualBoard<AggressorVirtualShipInfo>("Aggressor main (player 1)") },
+                    { PlayerNo.Player2, new VirtualBoard<AggressorVirtualShipInfo>("Aggressor main (player 2)") }
                 };
 
                 if (DebugManager.DoAiLogging)
@@ -692,34 +692,55 @@ namespace AI.Aggressor
 
         public static int GetActionPriority(GenericAction action, ref BarrelRollPlanInfo? currentBarrelRollPlan, ref BoostPlanInfo? currentBoostPlan, int redActionPriorityModifier, List<GenericAction> linkedActions)
         {
-            VirtualBoard<VirtualBoardManager.EmptyClass> virtualBoard = new("Aggressor action priority");
-            virtualBoard.UpdateToReal(a => new());
-            virtualBoard.Activate();
+            GenericShip? shipMaybeNull = action.HostShip ?? Selection.ThisShip;
 
-            GenericShip ship = action.HostShip;
+            if (shipMaybeNull is null)
+            {
+                // prefer this over actions we know will not work.
+                return int.MinValue + 1;
+            }
+            
+            GenericShip ship = shipMaybeNull;
+
             int priority;
 
             if (action is BarrelRollActionWithPlans castBarrelRollAction)
             {
+                VirtualBoard<VirtualBoardManager.EmptyClass> virtualBoard = new("Aggressor barrel roll action priority");
+                virtualBoard.UpdateToReal(a => new());
+                virtualBoard.Activate();
+
                 (double, BarrelRollPlanInfo?) barrelRollActionInfo = GetBarrelRollActionPriority(castBarrelRollAction.BarrelRollPlans, (ActiveVirtualBoard<VirtualBoardManager.EmptyClass>)virtualBoard);
                 currentBarrelRollPlan = barrelRollActionInfo.Item2;
                 priority = (int)barrelRollActionInfo.Item1;
                 if (barrelRollActionInfo.Item2?.FinalPositionInfo is not null) {
                     virtualBoard.GetShipInterface(ship).SetPosition((ShipPositionInfo)barrelRollActionInfo.Item2.FinalPositionInfo);
                 }
+
+                virtualBoard.Deactivate();
             }
             else if (action is BoostActionWithPlans castBoostAction)
             {
+                VirtualBoard<VirtualBoardManager.EmptyClass> virtualBoard = new("Aggressor boost action priority");
+                virtualBoard.UpdateToReal(a => new());
+                virtualBoard.Activate();
+
                 (double, BoostPlanInfo?) boostActionInfo = GetBoostActionPriority(castBoostAction.BoostPlans, (ActiveVirtualBoard<VirtualBoardManager.EmptyClass>)virtualBoard);
                 currentBoostPlan = boostActionInfo.Item2;
                 priority = (int)boostActionInfo.Item1;
                 if (boostActionInfo.Item2?.FinalPositionInfo is not null) {
                     virtualBoard.GetShipInterface(ship).SetPosition((ShipPositionInfo)boostActionInfo.Item2.FinalPositionInfo);
                 }
+
+                virtualBoard.Deactivate();
             }
             else
             {
                 priority = action.GetActionPriority();
+                if (priority == int.MinValue)
+                {
+                    return int.MinValue;
+                }
             }
 
             ship.Ai.CallGetActionPriority(action, ref priority);
@@ -728,8 +749,6 @@ namespace AI.Aggressor
             {
                 priority += redActionPriorityModifier;
             }
-
-            virtualBoard.Deactivate();
 
             BarrelRollPlanInfo? nullBarrelRollPlanInfo = null;
             BoostPlanInfo? nullBoostPlanInfo = null;

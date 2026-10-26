@@ -157,30 +157,11 @@ namespace AI.Helpers.VirtualBoard
         }
 
         /// <summary>
-        /// If possible, activate this and push to vb stack. Return true if this is active.
-        /// Applies virtual positions.
-        /// </summary>
-        public bool TryActivate()
-        {
-            if (VirtualBoardManager.ActiveVirtualBoard is null)
-            {
-                VirtualBoardManager.Activate(this);
-            }
-
-            return IsActive;
-        }
-
-        /// <summary>
         /// If this is on top of the vb stack, deactivate this, removing it from vb stack.
         /// Then active the top vb in the vb stack.
         /// </summary>
         public void Deactivate()
         {
-            if (VirtualBoardManager.ActiveVirtualBoard != this)
-            {
-                return;
-            }
-
             VirtualBoardManager.Deactivate(this);
         }
 
@@ -417,6 +398,11 @@ namespace AI.Helpers.VirtualBoard
         public override string ToString()
         {
             return Name;
+        }
+
+        public override void UpdateDisplayInternal()
+        {
+            ApplyVirtualPositionsInternal();
         }
     }
 }

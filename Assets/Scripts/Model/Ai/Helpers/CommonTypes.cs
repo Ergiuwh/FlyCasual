@@ -508,14 +508,14 @@ namespace AI.Helpers
         {
             string message = $"Warn: {source}: {value}";
             Console.Write(message, false, "yellow");
-            Messages.ShowError(message, false);
+            Messages.ShowError(message);
         }
 
         public static void Error(string source, string value)
         {
             string message = $"Error: {source}: {value}";
             Console.Write(message, true, "red");
-            Messages.ShowError(message, true);
+            Messages.ShowError(message);
         }
     }
 }

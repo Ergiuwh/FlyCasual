@@ -204,7 +204,14 @@ namespace AI.Helpers.VirtualBoard.Debug
 
             public static void InitializeLogForPlayer(PlayerNo playerNo)
             {
-                Logs.Add(playerNo, new VirtualBoardLog());
+                if (Logs.ContainsKey(playerNo))
+                {
+                    Logs[playerNo] = new VirtualBoardLog();
+                }
+                else
+                {
+                    Logs.Add(playerNo, new VirtualBoardLog());
+                }
             }
 
             public static Result<int,string> TryStartDisplay(PlayerNo playerNo)
