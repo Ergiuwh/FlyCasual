@@ -594,19 +594,15 @@ namespace Players
         {
             DecisionSubPhase subphase = (Phases.CurrentSubPhase as DecisionSubPhase);
 
-            if (subphase.IsForced)
-            {
-                (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
-            }
             // Actions
-            else if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
+            if (Phases.CurrentSubPhase is ActionDecisonSubPhase)
             {
                 if (Selection.ThisShip is null)
                 {
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
-                GameManagerScript.Instance.StartCoroutine(CalculateAndPerformAction(Selection.ThisShip.GetAvailableActions()));
+                GameManagerScript.Instance.StartCoroutine(CalculateAndPerformAction(Selection.ThisShip.GetAvailableActions(), subphase.IsForced));
             }
             else if (Phases.CurrentSubPhase is FreeActionDecisonSubPhase)
             {
@@ -615,7 +611,12 @@ namespace Players
                     throw new Exception("Selection.ThisShip null in unexpected place.");
                 }
 
-                GameManagerScript.Instance.StartCoroutine(CalculateAndPerformAction(Selection.ThisShip.GetAvailableFreeActions()));
+                GameManagerScript.Instance.StartCoroutine(CalculateAndPerformAction(Selection.ThisShip.GetAvailableFreeActions(), subphase.IsForced));
+            }
+            //
+            else if (subphase.IsForced)
+            {
+                (Phases.CurrentSubPhase as DecisionSubPhase).DoDefault();
             }
             // Barrel Rolls
             else if (Phases.CurrentSubPhase is BarrelRollPlanningSubPhase.BarrelRollDirectionDecisionSubPhase)
@@ -642,7 +643,7 @@ namespace Players
         }
 #nullable enable
 
-        protected IEnumerator CalculateAndPerformAction(List<GenericAction> actionsList)
+        protected IEnumerator CalculateAndPerformAction(List<GenericAction> actionsList, bool isForced)
         {
             SetCalculatingStatus(true);
 
@@ -714,7 +715,7 @@ namespace Players
                 actionsList[boostActionIndex] = boostActionWithPlans;
             } 
 
-            GenericAction? selectedAction = SelectActionToPerformFromList(actionsList);
+            GenericAction? selectedAction = SelectActionToPerformFromList(actionsList, isForced);
 
             SetCalculatingStatus(false);
 
@@ -755,7 +756,7 @@ namespace Players
             GameMode.CurrentGameMode.ExecuteCommand(UI.GenerateNextButtonCommand());
         }
 
-        protected virtual GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList)
+        protected virtual GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList, bool isForced)
         {
             return null;
         }

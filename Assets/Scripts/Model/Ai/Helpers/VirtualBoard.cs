@@ -77,16 +77,73 @@ namespace AI.Helpers.VirtualBoard
                 }
                 else
                 {
-                    thisShip.GetShipAllPartsTransform().GetPositionAndRotation(
-                        out Vector3 savedModelPosition,
-                        out Quaternion savedModelRotation);
-                    thisShip.SetPositionInfo(VirtualPosition);
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").GetPositionAndRotation(
-                        out Vector3 savedHitboxPosition,
-                        out Quaternion savedHitboxRotation);
-                    thisShip.GetShipAllPartsTransform().SetPositionAndRotation(savedModelPosition,savedModelRotation);
-                    thisShip.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").SetPositionAndRotation(savedHitboxPosition, savedHitboxRotation);
+                    SetOnlyHitboxPosition(thisShip, VirtualPosition);
                 }
+            }
+
+            public void ResetHitboxAndApplyPosition(GenericShip thisShip)
+            {
+                ResetHitboxToModel(thisShip);
+                ApplyPosition(thisShip);
+            }
+
+            private static Dictionary<BaseSize, (Vector3, Quaternion)> ShipHitboxLocalTransforms;
+
+            static ShipInfo()
+            {
+                GameObject smallShipBaseGO = Resources.Load<GameObject>("Prefabs/ShipModel/ShipBase/ShipBaseSmall");
+                Transform smallShipBaseColliderTransform = smallShipBaseGO.transform.Find("ShipBaseCollider");
+                smallShipBaseColliderTransform.GetLocalPositionAndRotation(out Vector3 smallLocalPosition, out Quaternion smallLocalRotation);
+
+                GameObject mediumShipBaseGO = Resources.Load<GameObject>("Prefabs/ShipModel/ShipBase/ShipBaseMedium");
+                Transform mediumShipBaseColliderTransform = mediumShipBaseGO.transform.Find("ShipBaseCollider");
+                mediumShipBaseColliderTransform.GetLocalPositionAndRotation(out Vector3 mediumLocalPosition, out Quaternion mediumLocalRotation);
+
+                GameObject largeShipBaseGO = Resources.Load<GameObject>("Prefabs/ShipModel/ShipBase/ShipBaseLarge");
+                Transform largeShipBaseColliderTransform = largeShipBaseGO.transform.Find("ShipBaseCollider");
+                largeShipBaseColliderTransform.GetLocalPositionAndRotation(out Vector3 largeLocalPosition, out Quaternion largeLocalRotation);
+
+                ShipHitboxLocalTransforms = new()
+                {
+                    { BaseSize.Small, (smallLocalPosition, smallLocalRotation) },
+                    { BaseSize.Medium, (mediumLocalPosition, mediumLocalRotation) },
+                    { BaseSize.Large, (largeLocalPosition, largeLocalRotation) }
+                };
+            }
+
+            private static void GetLocalHitboxTransform(BaseSize baseSize, out Vector3 localPosition, out Quaternion localRotation)
+            {
+                if (ShipHitboxLocalTransforms.TryGetValue(baseSize, out (Vector3, Quaternion) value))
+                {
+                    localPosition = value.Item1;
+                    localRotation = value.Item2;
+                }
+                else
+                {
+                    ConsoleHelpers.Error("VirtualBoard.ShipInfo.GetLocalHitboxTransform",
+                        $"base size {baseSize} does not exist in ShipHitboxLocalTransforms");
+                    localPosition = Vector3.zero;
+                    localRotation = Quaternion.identity;
+                }
+            }
+
+            private static void ResetHitboxToModel(GenericShip ship)
+            {
+                GetLocalHitboxTransform(ship.ShipBase.Size, out Vector3 localPosition, out Quaternion localRotation);
+                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").SetLocalPositionAndRotation(localPosition, localRotation);
+            }
+
+            private static void SetOnlyHitboxPosition(GenericShip ship, ShipPositionInfo position)
+            {
+                ship.GetShipAllPartsTransform().GetPositionAndRotation(
+                    out Vector3 savedModelPosition,
+                    out Quaternion savedModelRotation);
+                ship.SetPositionInfo(position);
+                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").GetPositionAndRotation(
+                    out Vector3 savedHitboxPosition,
+                    out Quaternion savedHitboxRotation);
+                ship.GetShipAllPartsTransform().SetPositionAndRotation(savedModelPosition,savedModelRotation);
+                ship.GetShipAllPartsTransform().Find("ShipBase/ShipBaseCollider").SetPositionAndRotation(savedHitboxPosition, savedHitboxRotation);
             }
         }
 
@@ -402,7 +459,10 @@ namespace AI.Helpers.VirtualBoard
 
         public override void UpdateDisplayInternal()
         {
-            ApplyVirtualPositionsInternal();
+            foreach (GenericShip ship in Ships.Keys)
+            {
+                Ships[ship].ResetHitboxAndApplyPosition(ship);
+            }
         }
     }
 }

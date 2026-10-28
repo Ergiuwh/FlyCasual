@@ -34,7 +34,7 @@ namespace Players
             return TargetingSubSystem.SelectTargetAndWeapon(Selection.ThisShip);
         }
 
-        protected override GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList)
+        protected override GenericAction? SelectActionToPerformFromList(List<GenericAction> actionsList, bool isForced)
         {
             if (Selection.ThisShip is null ) { throw new Exception(); }
 
@@ -76,7 +76,7 @@ namespace Players
                 }
 
                 int priority = NavigationSubSystem.GetActionPriority(action, ref CurrentBarrelRollPlan, ref CurrentBoostPlan, redActionPriorityModifier, linkedActions);
-                if (priority == int.MinValue)
+                if (priority == int.MinValue && !isForced)
                 {
                     continue;
                 }
@@ -92,7 +92,7 @@ namespace Players
             {
                 KeyValuePair<GenericAction, int> prioritizedAction = actionsPriority.First();
 
-                if (prioritizedAction.Value > 0)
+                if (prioritizedAction.Value > 0 || isForced)
                 {
                     AiPlanningLog.Add($"Selected action {prioritizedAction.Key}");
                     AiPlanningLog.CloseGroup();

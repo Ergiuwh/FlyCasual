@@ -48,7 +48,6 @@ namespace AI.Helpers.Navigation.PredictionHelpers {
             Selection.ThisShip = savedThisShip;
         }
 
-
         public static IEnumerator CalculateAtFinalPosition(GenericShip ship, Maneuver maneuver)
         {
             return CalculateAtFinalPosition(ship, maneuver.ToString());

@@ -118,7 +118,7 @@ namespace Players
         }
 
         // This has not been tested after using SelectActionToPerformFromList.
-        protected override GenericAction SelectActionToPerformFromList(List<GenericAction> actionsList)
+        protected override GenericAction SelectActionToPerformFromList(List<GenericAction> actionsList, bool isForced)
         {
             if (Selection.ThisShip.Tokens.GetToken(typeof(Tokens.StressToken)) != null)
             {

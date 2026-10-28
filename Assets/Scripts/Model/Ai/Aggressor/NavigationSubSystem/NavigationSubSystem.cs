@@ -690,7 +690,7 @@ namespace AI.Aggressor
             }
         }
 
-        public static int GetActionPriority(GenericAction action, ref BarrelRollPlanInfo? currentBarrelRollPlan, ref BoostPlanInfo? currentBoostPlan, int redActionPriorityModifier, List<GenericAction> linkedActions)
+        public static int GetActionPriority(GenericAction action, ref BarrelRollPlanInfo? currentBarrelRollPlan, ref BoostPlanInfo? currentBoostPlan, int redActionPriorityModifier)
         {
             GenericShip? shipMaybeNull = action.HostShip ?? Selection.ThisShip;
 
@@ -744,11 +744,22 @@ namespace AI.Aggressor
             }
 
             ship.Ai.CallGetActionPriority(action, ref priority);
+            if (priority == int.MinValue)
+            {
+                return int.MinValue;
+            }
 
             if (action.IsRed)
             {
                 priority += redActionPriorityModifier;
             }
+
+            return priority;
+        }
+
+        public static int GetActionPriority(GenericAction action, ref BarrelRollPlanInfo? currentBarrelRollPlan, ref BoostPlanInfo? currentBoostPlan, int redActionPriorityModifier, List<GenericAction> linkedActions)
+        {
+            int priority = GetActionPriority(action, ref currentBarrelRollPlan, ref currentBoostPlan, redActionPriorityModifier);
 
             BarrelRollPlanInfo? nullBarrelRollPlanInfo = null;
             BoostPlanInfo? nullBoostPlanInfo = null;
@@ -757,8 +768,8 @@ namespace AI.Aggressor
 
             foreach (GenericAction linkedAction in linkedActions)
             {
-                int linkedActionPriority = GetActionPriority(linkedAction, ref nullBarrelRollPlanInfo, ref nullBoostPlanInfo, redActionPriorityModifier, new());
-                
+                int linkedActionPriority = GetActionPriority(linkedAction, ref nullBarrelRollPlanInfo, ref nullBoostPlanInfo, redActionPriorityModifier);
+
                 if (linkedActionPriority > bestLinkedActionPriority)
                 {
                     bestLinkedActionPriority = linkedActionPriority;
@@ -889,8 +900,12 @@ namespace AI.Aggressor
             {
                 AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
                 if (ship.Owner == CurrentPlayer) {
-                    Dictionary<string, NavigationResult> shipNavigationResults = new();
+                    VirtualBoardLogAddUpdateToVirtualBoard($"Scoring maneuvers for {ship}");
+
                     ShipPositionInfo savedPositionInfo = ship.GetPositionInfo();
+
+                    Dictionary<string, NavigationResult> shipNavigationResults = new();
+
                     foreach (KeyValuePair<string, MovementComplexity> maneuver in ship.GetManeuvers())
                     {
                         MovementPrediction prediction = NavFunctions.PredictFinalPosition(ship, maneuver);
@@ -916,6 +931,8 @@ namespace AI.Aggressor
 
             VirtualBoard.UpdateToReal(NewShipInitialiser);
 
+            VirtualBoardLogAddUpdateToVirtualBoard("Start final predictions");
+
             AiPlanningLog.OpenNewGroup("Final Movement Predictions");
             foreach (GenericShip ship in OrderOfActivation)
             {
@@ -923,26 +940,28 @@ namespace AI.Aggressor
                 {
                     AiPlanningLog.OpenNewGroup($"Scoring maneuvers for {ship}");
 
-                    List<GenericShip> enemyShipsWithoutOtherTarget = FindEnemyShipsWithoutOtherTarget(ship);
+                    ShipPositionInfo savedPositionInfo = ship.GetPositionInfo();
                     Dictionary<string, NavigationResult> navigationResults = VirtualBoard.GetShipDataOrError(ship).NavigationResults
                         ?? throw new Exception("AI.Aggressor.NavigationSubSystem.StartCalculationQuick: navigationResults should not be null");
-                    ShipPositionInfo savedPositionInfo = ship.GetPositionInfo();
 
                     bool isManeuverFound = false;
 
                     // prevent infinite loop if I made a mistake
                     for (int i = 0; i < 2*navigationResults.Count; i++) {
+                        VirtualBoardLogAddUpdateToVirtualBoard($"Start final predictions for {ship}");
+
                         KeyValuePair<string, NavigationResult> navigationResultToTry = navigationResults.OrderByDescending(a => a.Value.Priority).First();
 
                         yield return SingleMovementPredictionHelper.Calculate(ship, navigationResultToTry.Key, true);
                         MovementPrediction prediction = SingleMovementPredictionHelper.Prediction;
 
-                        NavigationResult result = CreateNavigationResult(prediction, enemyShipsWithoutOtherTarget);
+                        NavigationResult result = CreateNavigationResult(prediction, new());
                         result.CalculatePriorityInRoundTwo();
 
-                        VirtualBoard.GetShipInterface(ship).SetPosition(savedPositionInfo, true);
-
+                        VirtualBoardLog.Instance.CurrentLog?.AddSingleMoveStep($"{navigationResultToTry.Key}", ship, result.FinalPositionInfo);
                         AiPlanningLog.Add($"{navigationResultToTry.Key}  Expected: {navigationResultToTry.Value}, Result: {result}");
+
+                        VirtualBoard.GetShipInterface(ship).SetPosition(savedPositionInfo, true);
 
                         if (Math.Abs(navigationResultToTry.Value.Priority - result.Priority) < 0.00001)
                         {

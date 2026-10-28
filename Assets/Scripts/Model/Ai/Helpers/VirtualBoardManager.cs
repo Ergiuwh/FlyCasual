@@ -122,6 +122,10 @@ namespace AI.Helpers.VirtualBoard
             {
                 UpdateVirtualRealBoardInternal();
             }
+            else
+            {
+                ConsoleHelpers.Error("VirtualBoardManager.UpdateVirtualRealBoard", "VirtualRealBoard must be active.");
+            }
         }
 
         private static void UpdateVirtualRealBoardInternal()
@@ -157,6 +161,11 @@ namespace AI.Helpers.VirtualBoard
 
         public static void AfterSetDebugMovementShowPlanning()
         {
+            if (IsVirtualRealBoardActive)
+            {
+                UpdateVirtualRealBoard();
+            }
+
             ActiveVirtualBoard.UpdateDisplayInternal();
         }
 
@@ -226,4 +235,4 @@ namespace AI.Helpers.VirtualBoard
             }
         }
     }
-}
+}a
