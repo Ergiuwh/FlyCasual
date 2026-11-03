@@ -9,7 +9,7 @@ namespace AI.Helpers.VirtualBoard
     {
         private static Stack<AbstractVirtualBoard> VirtualBoardStack;
         /// <summary>
-        /// This holds a copy of all ship positions in the current board.
+        /// While another virtual board is active, this holds a copy of all ship positions in the current board.
         /// </summary>
         public static VirtualRealBoardClass VirtualRealBoard;
         public static AbstractVirtualBoard ActiveVirtualBoard { get { return VirtualBoardStack.Peek(); } }
@@ -235,4 +235,4 @@ namespace AI.Helpers.VirtualBoard
             }
         }
     }
-}a
+}

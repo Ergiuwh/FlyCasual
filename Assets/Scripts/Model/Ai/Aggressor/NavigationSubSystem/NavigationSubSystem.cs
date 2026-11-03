@@ -139,7 +139,12 @@ namespace AI.Aggressor
 
         private static void VirtualBoardLogAddUpdateToVirtualBoard(string name)
         {
-            VirtualBoardLog.Instance.CurrentLog?.AddUpdateToVirtualBoard(name, VirtualBoard);
+            VirtualBoardLogAddUpdateToVirtualBoard(name, VirtualBoard);
+        }
+
+        private static void VirtualBoardLogAddUpdateToVirtualBoard<T>(string name, VirtualBoard<T> virtualBoard) where T : class
+        {
+            VirtualBoardLog.Instance.CurrentLog?.AddUpdateToVirtualBoard(name, virtualBoard);
         }
 
         private static IEnumerator FirstPredictionRound()
@@ -174,7 +179,7 @@ namespace AI.Aggressor
                     isSimple: true
                     );
 
-                VirtualBoardLogAddPosition($"Second prediction round: final position of {ship}", ship);
+                VirtualBoardLogAddPosition($"Second prediction round: final position of {ship}: {plannedManeuver}", ship);
 
                 yield return null;
                 Selection.DeselectThisShip();
@@ -203,7 +208,7 @@ namespace AI.Aggressor
                         isSimple: true
                         );
 
-                    VirtualBoardLogAddPosition($"Third prediction round: final position of {ship}", ship);
+                    VirtualBoardLogAddPosition($"Third prediction round: final position of {ship}: {plannedManeuver}", ship);
 
                     yield return null;
                 }
@@ -241,6 +246,8 @@ namespace AI.Aggressor
                 temporaryVirtualBoard.GetShipInterface(item).UpdateToRealPosition();
             }
 
+            VirtualBoardLogAddUpdateToVirtualBoard("After checking order of activation", temporaryVirtualBoard);
+
             yield return BatchedMovementPredicitionHelper.Calculate(
                 ship,
                 ship.GetManeuvers(),
@@ -265,7 +272,7 @@ namespace AI.Aggressor
                 Selection.ThisShip = ship;
             }
 
-            VirtualBoardNoData temporaryVirtualBoard = new("NavigationSubSystem.PredictBestManeuverForShipRoundTwo: tempVirtualBoard");
+            VirtualBoardNoData temporaryVirtualBoard = new("NavigationSubSystem.PredictBestManeuverForShipRoundThree: tempVirtualBoard");
             temporaryVirtualBoard.UpdateToVirtualBoard(VirtualBoard);
             temporaryVirtualBoard.Activate();
 
@@ -274,6 +281,8 @@ namespace AI.Aggressor
             {
                 temporaryVirtualBoard.GetShipInterface(item).UpdateToRealPosition();
             }
+
+            VirtualBoardLogAddUpdateToVirtualBoard("After checking order of activation", temporaryVirtualBoard);
 
             Dictionary<string, MovementPrediction> finalPredictions = new();
             Dictionary<string, MovementComplexity> maneuvers = new();

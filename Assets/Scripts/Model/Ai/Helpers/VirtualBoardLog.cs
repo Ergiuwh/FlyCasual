@@ -169,6 +169,7 @@ namespace AI.Helpers.VirtualBoard.Debug
             {
                 IsTemporary = true;
 
+                UI.HideSkipButton();
                 UI.ShowNextButton();
                 UI.HighlightNextButton();
                 IsReadyForCommands = true;
